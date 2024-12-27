@@ -70,10 +70,16 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
     print("Getting frequencies")
     final_freq = np.zeros((number_bins, bin_length))
     freq = np.flip(wf.get_freqs())
+
+    # Split the frequencies into the number of bins
     for i in tqdm(range(number_bins), desc = ""):
         final_freq[i] = freq[i*bin_length:(i+1)*bin_length]
+
+    # Save the frequencies
     np.save(freq_file_name, final_freq)
     shape = (number_bins, 6, 16, bin_length)
+
+    # Save the shape
     np.save(f"Data/{time.strftime('%d-%m-%Y %H:%M')}/shape.npy", shape)
 
 
