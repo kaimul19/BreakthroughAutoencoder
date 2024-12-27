@@ -11,10 +11,39 @@ import time
 # Numba-compatible loop function
 @njit(parallel=True)
 def run_loop(data, output_array, number_bins, bin_length=4096):
+    """
+    Function to loop through the data and output the data into the output_array
+
+    Parameters:
+    - data: data to loop through
+    - output_array: array to output the data to
+    - number_bins: number of bins
+    - bin_length: length of each bin
+
+    Returns:
+    - None
+    """
+
     for j in prange(number_bins):  # Use prange for parallelization
         output_array[j, 0, :, :] = data[:, j * bin_length : (j + 1) * bin_length]
 
 def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_visibie = True):
+    """
+    Function to parse data from a list of file paths into a numpy array
+    
+    Parameters:
+    - file_path: list of file paths to parse
+    - bin_length: length of each bin
+    - file_name: name of the file to save the data to
+    - loading_bar_visibie: boolean to determine if the loading bar is visible
+
+    Returns:
+    - final_array: numpy array of the parsed data
+    - final_freq: numpy array of the frequencies
+    - data_file_name: name of the file the data is saved to
+    - freq_file_name: name of the file the frequencies are saved to
+
+    """
     import gc
     # Load the initial file
     print(f"Loading first wf file, takes ≈ 20 seconds per")
