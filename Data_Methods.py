@@ -7,8 +7,10 @@ import gc
 from tqdm import tqdm
 from numba import njit, prange
 import time
+from Decorators import TimeMeasure
 
 # Numba-compatible loop function
+# @TimeMeasure
 @njit(parallel=True)
 def run_loop(data, output_array, number_bins, bin_length=4096):
     """
