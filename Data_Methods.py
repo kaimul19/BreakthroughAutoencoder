@@ -89,13 +89,12 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
     print("Starting to loop through files")
     # start the initial progress bar
     if loading_bar_visibie:
-        bar1 = tqdm(total=len(file_path), desc="File Progress", position=0)
+        bar = tqdm(total=len(file_path), desc="File Progress", position=0)
 
     for i in range(len(file_path)):
         # Update the progress bar and start the slide progress bar
         if loading_bar_visibie:
-            bar1.update(1)
-            bar2 = tqdm(total=number_bins, desc=f"Slide Progress for file {i}", position=1)
+            bar.update(1)
 
         # Have already loaded the first file
         if i != 0:
@@ -104,16 +103,11 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
         data = data[:, :trim_length]  # trim the data to be a multiple of bin_length
         del wf  # delete the waterfall object for data efficiency
         gc.collect()
-        time_start = time.time()
         run_loop(data, final_array, number_bins, bin_length)
-        time_end = time.time()
-        print(f"Time taken: {time_end-time_start}")
-        if loading_bar_visibie:
-            bar2.close()
         final_array.flush()
 
     if loading_bar_visibie:
-        bar1.close()
+        bar.close()
 
 
     return final_array, freq, data_file_name, freq_file_name
