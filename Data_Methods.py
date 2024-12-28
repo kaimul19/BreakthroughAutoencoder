@@ -9,6 +9,7 @@ from numba import njit, prange
 import time
 from Decorators import TimeMeasure
 
+
 # Numba-compatible loop function
 # @TimeMeasure
 @njit(parallel=True)
@@ -29,10 +30,11 @@ def run_loop(data, output_array, number_bins, bin_length=4096):
     for j in prange(number_bins):  # Use prange for parallelization
         output_array[j, 0, :, :] = data[:, j * bin_length : (j + 1) * bin_length]
 
-def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_visibie = True):
+
+def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie=True):
     """
     Function to parse data from a list of file paths into a numpy array
-    
+
     Parameters:
     - file_path: list of file paths to parse
     - bin_length: length of each bin
@@ -47,6 +49,7 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
 
     """
     import gc
+
     # Load the initial file
     print(f"Loading first wf file, takes ≈ 20 seconds per")
     wf = bl.Waterfall(file_path[0])
@@ -61,12 +64,20 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
     # Create final array
     if file_name is None:
         import time, os, glob
+
         os.makedirs(f"Data/{time.strftime('%d-%m-%Y %H:%M')}", exist_ok=True)
-        data_file_name = f"Data/{time.strftime('%d-%m-%Y %H:%M')}/seperated_raw_data.npy"
+        data_file_name = (
+            f"Data/{time.strftime('%d-%m-%Y %H:%M')}/seperated_raw_data.npy"
+        )
         freq_file_name = f"Data/{time.strftime('%d-%m-%Y %H:%M')}/seperated_freqs.npy"
         print(f"File name not provided, saving as {data_file_name}")
 
-    final_array = np.memmap(data_file_name, dtype='float32', mode='w+', shape=(number_bins, 6, 16, bin_length))
+    final_array = np.memmap(
+        data_file_name,
+        dtype="float32",
+        mode="w+",
+        shape=(number_bins, 6, 16, bin_length),
+    )
 
     # Get frequencies
     print("Getting frequencies")
@@ -74,8 +85,8 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
     freq = np.flip(wf.get_freqs())
 
     # Split the frequencies into the number of bins
-    for i in tqdm(range(number_bins), desc = ""):
-        final_freq[i] = freq[i*bin_length:(i+1)*bin_length]
+    for i in tqdm(range(number_bins), desc=""):
+        final_freq[i] = freq[i * bin_length : (i + 1) * bin_length]
 
     # Save the frequencies
     np.save(freq_file_name, final_freq)
@@ -83,7 +94,6 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
 
     # Save the shape
     np.save(f"Data/{time.strftime('%d-%m-%Y %H:%M')}/shape.npy", shape)
-
 
     # Loop through each file
     print("Starting to loop through files")
@@ -109,17 +119,19 @@ def data_parsing(file_path, bin_length = 4096, file_name = None, loading_bar_vis
     if loading_bar_visibie:
         bar.close()
 
-
     return final_array, freq, data_file_name, freq_file_name
 
 
-
 if __name__ == "__main__":
-    path = ['/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_59531_HIP13402_0014.gpuspec.0000.h5',
-            '/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_59890_HIP12402_0015.gpuspec.0000.h5',
-            '/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60248_HIP13402_0016.gpuspec.0000.h5',
-            '/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60602_HIP12482_0017.gpuspec.0000.h5',
-            '/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60955_HIP13402_0018.gpuspec.0000.h5',
-            '/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_61313_HIP12549_0019.gpuspec.0000.h5']
+    path = [
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_59531_HIP13402_0014.gpuspec.0000.h5",
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_59890_HIP12402_0015.gpuspec.0000.h5",
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60248_HIP13402_0016.gpuspec.0000.h5",
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60602_HIP12482_0017.gpuspec.0000.h5",
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_60955_HIP13402_0018.gpuspec.0000.h5",
+        "/datag/pipeline/AGBT16A_999_212/holding/spliced_blc0001020304050607_guppi_57541_61313_HIP12549_0019.gpuspec.0000.h5",
+    ]
 
-    data, freq, data_file_name, freq_file_name = data_parsing(path, bin_length = 4096, loading_bar_visibie = True)
+    data, freq, data_file_name, freq_file_name = data_parsing(
+        path, bin_length=4096, loading_bar_visibie=True
+    )

@@ -1,6 +1,7 @@
 from time import perf_counter_ns
 from functools import wraps
 
+
 # TimeMeasure taken from another of my Git Repo's - https://github.com/JCatton/KJRJMCMCMC/tree/Test-Inclination-Bounds
 def TimeMeasure(func):
     """Measure performance of a function"""
