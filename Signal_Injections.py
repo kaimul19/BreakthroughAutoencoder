@@ -14,7 +14,7 @@ def generate_injection_list(signal_split: dict, number_slides: int):
     - number_slides: number of slides in the data
 
     Returns:
-    - injection_array: np.array of the injection type for each data slide in string format (e.g. ["Background", "Linear", "Background", "Linear"])
+    - output_dictionary: dictionary containing the injection type for each data slide (e.g. {"Background": 50, "Linear": 50, ...})
     """
     # Initialize the injection list
     keys = np.array(list(signal_split.keys()))
@@ -31,16 +31,22 @@ def generate_injection_list(signal_split: dict, number_slides: int):
     # Generate the injection list
     possible_indexes = np.arange(number_slides)
 
-    injection_array = np.empty(number_slides, dtype=str)
+    output_dictionary = {}
 
     for i, number in enumerate(number_each_injection):
+
+        # Select the indexes for the current injection
         selected_numbers = np.random.choice(possible_indexes, size=number, replace=False)
         print(f"For key: {keys[i]}, selected numbers: {len(selected_numbers)}")
-        injection_array[selected_numbers] = keys[i]
+
+        # Add the selected indexes to the output dictionary
+        output_dictionary[keys[i]] = selected_numbers 
+
+        # Remove the selected indexes from the possible indexes
         possible_indexes = np.setdiff1d(possible_indexes, selected_numbers)
         print(f"Possible indexes: {len(possible_indexes)}")
 
-    return injection_array
+    return output_dictionary
 
 
 
