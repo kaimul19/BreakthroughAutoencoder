@@ -5,28 +5,29 @@ from numba import njit, prange
 from Decorators import TimeMeasure
 
 @TimeMeasure
-def generate_injection_list(signal_split: dict, number_slides: int):
+def generate_injection_list(split: dict, number_slides: int, unequal_split_index: int = 0):
     """
     Function to generate a list including the injection type for each data slide
 
     Parameters:
-    - signal_split: dictionary containing the split of the signals (e.g. {"Background": 0.5, "Linear": 0.5})
+    - split: dictionary containing the split of the signals (e.g. {"Background": 0.5, "Linear": 0.5} or {"True": 0.5, "False": 0.5})
     - number_slides: number of slides in the data
+    - unequal_split_index: index of the injection type that should be given the extra slide if the number of slides is not divisible by the number of injections
 
     Returns:
-    - output_dictionary: dictionary containing the injection type for each data slide (e.g. {"Background": 50, "Linear": 50, ...})
+    - output_dictionary: dictionary containing the injection type for each data slide (e.g. {"Background": 50, "Linear": 50, ...} or {"True": 50, "False": 50})
     """
     # Initialize the injection list
-    keys = np.array(list(signal_split.keys()))
+    keys = np.array(list(split.keys()))
 
-    proportions = np.array(list(signal_split.values()))
+    proportions = np.array(list(split.values()))
 
     number_each_injection = (proportions * number_slides).astype(int)
 
     # Check if the number of slides is equal to the sum of the number of each injection
     if np.sum(number_each_injection) != number_slides:
         # If not, add the difference to the first injection
-        number_each_injection[0] += number_slides - np.sum(number_each_injection)
+        number_each_injection[unequal_split_index] += number_slides - np.sum(number_each_injection)
     
     # Generate the injection list
     possible_indexes = np.arange(number_slides)
