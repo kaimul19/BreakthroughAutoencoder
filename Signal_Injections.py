@@ -1,7 +1,10 @@
 import numpy as np
 import random as rd
+import setigen as stg
+from numba import njit, prange
+from Decorators import TimeMeasure
 
-
+@TimeMeasure
 def generate_injection_list(signal_split: dict, number_slides: int):
     """
     Function to generate a list including the injection type for each data slide
