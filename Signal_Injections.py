@@ -75,6 +75,16 @@ def inject_signals(data: np.ndarray,
         print(f"{len(indexes)=}")
         data[indexes, :, :, :] = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
 
+    for i in range(0,100,10):
+    # subplot now
+        fig, axs = plt.subplots(5, 1)
+        for j in range(5):
+            axs[j].imshow(data[i, j, :, :], aspect='auto')
+        plt.savefig(f"1test{i}.png")
+        plt.close()
+    data = threshold_and_normalise_data(data, 2)
+    print(f"{data.shape=}")
+
     return data
 
 # @njit(parallel=True)
@@ -262,8 +272,38 @@ def process_into_cadence(data_slice, true_false_index_dictionary):
 
             
 if __name__ == "__main__":
-    signal_split = {"Background": 0.5, "Linear": 0.5}
-    number_slides = 99
+    signal_split = {"Background": 0.0, "Linear": 1}
+    number_slides = 100
     output_dictionary = generate_injection_list(signal_split, number_slides)
-    print(f"{len(output_dictionary["Background"])=}, {len(output_dictionary["Linear"])=}")
+    # print(f"{len(output_dictionary["Background"])=}, {len(output_dictionary["Linear"])=}")
+
+    true_false_split = {"True": 1, "False": 0}
+    output_dictionary2 = generate_injection_list(true_false_split, number_slides)
+    # print(f"{output_dictionary2=}")
+    # print(f"{output_dictionary2["True"]=}")
+    # print(f"{type(output_dictionary2["True"])=}")
+    # if 0 in output_dictionary2["True"]:
+    #     print("In True")
+    # if 0 in output_dictionary2["False"]:
+    #     print("In False")
+    mask = generate_injection_list(true_false_split, number_slides)
+
+    print(f"{np.sum(mask)=}, {len(mask)=}")
+
+    import os 
+    print(f"{os.getcwd()=}")
+    data_shape = np.load('HIP13402/shape.npy')
+
+    data_shape = tuple(int(dim) for dim in data_shape)
+    data = np.memmap('HIP13402/seperated_raw_data.npy', dtype='float32', mode='c', shape=data_shape)
+    print(f"{data[200:300].shape=}=")
+    data2 = inject_signals(data[400:500], signal_split = signal_split, true_false_split = true_false_split, signal_params = np.array([1000, 0, 10000.0]), num_workers=20)
+    print(f"{data2.shape=}=")
+    for i in range(0,100,10):
+        # subplot now
+        fig, axs = plt.subplots(5, 1)
+        for j in range(5):
+            axs[j].imshow(data2[i, j, :, :], aspect='auto')
+        plt.savefig(f"2test{i}.png")
+        plt.close()
     
