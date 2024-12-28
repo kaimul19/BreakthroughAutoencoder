@@ -50,27 +50,29 @@ def generate_injection_list(split: dict, number_slides: int, unequal_split_index
 
     return output_dictionary
 
-
-
-
 def inject_signals(data: np.ndarray, 
                    signal_split: dict, 
+                   true_false_split: dict,
                    signal_params: np.ndarray, 
-                   loading_bar_bool: bool = True):
+                   loading_bar_bool: bool = True,
+                   num_workers: int = 20):
     """
     """
 
     # Generate the injection list
-    index_dictionary = generate_injection_list(signal_split, data.shape[1])
+    signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
     keys = list(signal_split.keys())
 
     # Loop through the injections
     for key in keys:
-        indexes = index_dictionary[key]
-        for index in indexes:
-            data[:, index, :] = add_injection(data[:, index, :], signal_params[key], injection_type = key, loading_bar_bool = loading_bar_bool)
+        print(f"Injecting {key} signals")
+        indexes = signal_index_dictionary[key]
+        print(f"{len(indexes)=}")
+        data[indexes, :, :, :] = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
 
-def add_injection(data: np.ndarray, signal_params: np.ndarray, injection_type: str, loading_bar_bool: bool = True):
+
+    return data
+
     """
     """
     if injection_type == "Background":
