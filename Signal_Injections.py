@@ -52,3 +52,8 @@ def inject_signals(data: np.ndarray,
     # Generate the injection list
     injection_list = generate_injection_list(signal_split, data.shape[1])
 
+            
+if __name__ == "__main__":
+    signal_split = {"Background": 0.5, "Linear": 0.5}
+    number_slides = 99
+    generate_injection_list(signal_split, number_slides)
