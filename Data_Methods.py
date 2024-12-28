@@ -13,7 +13,7 @@ from Decorators import TimeMeasure
 # Numba-compatible loop function
 # @TimeMeasure
 @njit(parallel=True)
-def run_loop(data, output_array, number_bins, bin_length=4096):
+def run_loop(data, output_array, number_bins, index, bin_length=4096):
     """
     Function to loop through the data and output the data into the output_array
 
