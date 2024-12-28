@@ -39,14 +39,14 @@ def generate_injection_list(split: dict, number_slides: int, unequal_split_index
 
         # Select the indexes for the current injection
         selected_numbers = np.random.choice(possible_indexes, size=number, replace=False)
-        print(f"For key: {keys[i]}, selected numbers: {len(selected_numbers)}")
+        # print(f"For key: {keys[i]}, selected numbers: {len(selected_numbers)}")
 
         # Add the selected indexes to the output dictionary
         output_dictionary[keys[i]] = selected_numbers 
 
         # Remove the selected indexes from the possible indexes
         possible_indexes = np.setdiff1d(possible_indexes, selected_numbers)
-        print(f"Possible indexes: {len(possible_indexes)}")
+        # print(f"Possible indexes: {len(possible_indexes)}")
 
     return output_dictionary
 
