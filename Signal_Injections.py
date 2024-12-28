@@ -164,7 +164,35 @@ def return_to_data(cadences):
 
 
 
+def add_linear(cadence, signal_params):
     """
+    Add a linear signal to the "A" observations in the given cadence.
+
+    Parameters:
+    - cadence: An OrderedCadence object.
+    - signal_params: Parameters for the signal injection (e.g., [f_start, drift_rate, snr]).
+
+    Returns:
+    - Updated OrderedCadence object.
+    """
+    # Add a signal to frames labeled "A"
+    cadence.by_label("A").add_signal(stg.constant_path(f_start=cadence[0].get_frequency(index=600),
+                               drift_rate=4*u.Hz/u.s),
+                           stg.constant_t_profile(level=cadence[0].get_intensity(snr=30)),
+                           stg.sinc2_f_profile(width=80*cadence[0].df*u.Hz),
+                           stg.constant_bp_profile(level=1),
+                           doppler_smearing=True)
+    
+
+    # signal = frame.add_signal(stg.constant_path(f_start=frame.get_frequency(200),
+    #                                         drift_rate=2*u.Hz/u.s),
+    #                       stg.constant_t_profile(level=1),
+    #                       stg.box_f_profile(width=20*u.Hz),
+    #                       stg.constant_bp_profile(level=1))
+    return cadence
+
+
+
     """
     cadences = []
     for i in prange(data.shape[0]):
