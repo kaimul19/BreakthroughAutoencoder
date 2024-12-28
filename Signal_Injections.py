@@ -139,8 +139,31 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
 
     return data
 
-@njit(parallel=True)
-def generate_frames(data):
+
+def return_to_data(cadences):
+    """
+    Convert a list of cadences back to the original-shaped NumPy array.
+
+    Parameters:
+    - cadences: List of OrderedCadence objects.
+
+    Returns:
+    - A NumPy array with the original shape of the data.
+    """
+    # Define a helper function to extract data from a single cadence
+    def extract_cadence_data(cadence):
+        return np.array([frame.get_data() for frame in cadence])
+
+    # Use ThreadPoolExecutor for parallel data extraction
+    with ThreadPoolExecutor() as executor:
+        data_list = list(executor.map(extract_cadence_data, cadences))
+
+    # Stack the list of NumPy arrays into a single array
+    data_array = np.stack(data_list, axis=0)
+    return data_array
+
+
+
     """
     """
     cadences = []
