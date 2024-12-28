@@ -193,18 +193,28 @@ def add_linear(cadence, signal_params):
 
 
 
+
+
+
+
+
+def generate_frames(data, true_false_index_dictionary, max_workers=20):
+    """
+    Generate frames and cadences in parallel using ProcessPoolExecutor.
+
+    Parameters:
+    - data: 3D numpy array with shape (n_cadences, n_frames, frame_data)
+    - true_false_index_dictionary: Dictionary specifying True/False indices.
+    - max_workers: Number of parallel processes to use.
+
+    Returns:
+    - List of OrderedCadence objects.
     """
     cadences = []
-    for i in prange(data.shape[0]):
-        frame_list = []
-        for j in range(6):
-            frame = stg.Frame.from_data(df=2.7939677238464355*u.Hz,
-                                        dt=18.25361108*u.s,
-                                        fch1=0*u.MHz,
-                                        ascending = True,
-                                        data=data[i, j])
-            frame_list.append(frame)
-        cadences.append(stg.OrderedCadence(frame_list, order = "ABACAD"))
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        # No need to multiply the dictionary; it maps 1-to-1 with data
+        cadences = list(executor.map(process_into_cadence, data, true_false_index_dictionary))
+
     return cadences
 
             
