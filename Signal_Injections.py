@@ -69,6 +69,20 @@ def inject_signals(data: np.ndarray,
         for index in indexes:
             data[:, index, :] = add_injection(data[:, index, :], signal_params[key], injection_type = key, loading_bar_bool = loading_bar_bool)
 
+def add_injection(data: np.ndarray, signal_params: np.ndarray, injection_type: str, loading_bar_bool: bool = True):
+    """
+    """
+    if injection_type == "Background":
+        return data  # No injection needed
+    
+    cadences = generate_frames(data)
+    if injection_type == "Linear":
+        data = add_linear(data, signal_params, loading_bar_bool)
+    else:
+        raise ValueError(f"Invalid injection type: {injection_type}")
+
+    return data
+
             
 if __name__ == "__main__":
     signal_split = {"Background": 0.5, "Linear": 0.5}
