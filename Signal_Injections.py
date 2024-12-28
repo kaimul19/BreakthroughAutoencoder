@@ -217,6 +217,44 @@ def generate_frames(data, true_false_index_dictionary, max_workers=20):
 
     return cadences
 
+
+def process_into_cadence(data_slice, true_false_index_dictionary):
+    """
+    Process a single cadence of data and generate an OrderedCadence.
+
+    Parameters:
+    - data_slice: A 2D numpy array (n_frames, frame_data) for one cadence.
+    - true_false_index_dictionary: Dictionary specifying True/False indices.
+
+    Returns:
+    - OrderedCadence object.
+    """
+    # Determine the order based on whether the cadence index is in True or False
+    cadence_index = np.where(data_slice == data_slice)[0][0]  # Assuming slice index maps to global index
+    if cadence_index in true_false_index_dictionary["True"]:
+        order = "ABACAD"
+    elif cadence_index in true_false_index_dictionary["False"]:
+        order = "AAAAAA"
+    else:
+        raise ValueError(f"Cadence index {cadence_index} not found in True/False index dictionary.")
+
+    # Create the frames
+    frame_array = np.empty(data_slice.shape[0], dtype=stg.Frame)
+    for j in range(data_slice.shape[0]):  # Loop over frames in the cadence
+        frame = stg.Frame.from_data(
+            df=2.7939677238464355 * u.Hz,
+            dt=18.25361108 * u.s,
+            fch1=0 * u.MHz,
+            ascending=True,
+            data=data_slice[j]
+        )
+        frame_array[j] = frame
+
+    # Create an OrderedCadence for this set of frames
+    return stg.OrderedCadence(frame_array, order=order)
+
+
+
             
 if __name__ == "__main__":
     signal_split = {"Background": 0.5, "Linear": 0.5}
