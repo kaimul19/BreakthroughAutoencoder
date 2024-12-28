@@ -83,6 +83,23 @@ def add_injection(data: np.ndarray, signal_params: np.ndarray, injection_type: s
 
     return data
 
+@njit(parallel=True)
+def generate_frames(data):
+    """
+    """
+    cadences = []
+    for i in prange(data.shape[0]):
+        frame_list = []
+        for j in range(6):
+            frame = stg.Frame.from_data(df=2.7939677238464355*u.Hz,
+                                        dt=18.25361108*u.s,
+                                        fch1=0*u.MHz,
+                                        ascending = True,
+                                        data=data[i, j])
+            frame_list.append(frame)
+        cadences.append(stg.OrderedCadence(frame_list, order = "ABACAD"))
+    return cadences
+
             
 if __name__ == "__main__":
     signal_split = {"Background": 0.5, "Linear": 0.5}
