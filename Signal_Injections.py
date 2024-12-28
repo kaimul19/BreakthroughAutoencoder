@@ -33,6 +33,7 @@ def generate_injection_list(signal_split: dict, number_slides: int):
 
     output_dictionary = {}
 
+    # Loop through the injections
     for i, number in enumerate(number_each_injection):
 
         # Select the indexes for the current injection
@@ -59,7 +60,14 @@ def inject_signals(data: np.ndarray,
     """
 
     # Generate the injection list
-    injection_list = generate_injection_list(signal_split, data.shape[1])
+    index_dictionary = generate_injection_list(signal_split, data.shape[1])
+    keys = list(signal_split.keys())
+
+    # Loop through the injections
+    for key in keys:
+        indexes = index_dictionary[key]
+        for index in indexes:
+            data[:, index, :] = add_injection(data[:, index, :], signal_params[key], injection_type = key, loading_bar_bool = loading_bar_bool)
 
             
 if __name__ == "__main__":
