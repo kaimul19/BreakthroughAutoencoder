@@ -3,6 +3,11 @@ import random as rd
 import setigen as stg
 from numba import njit, prange
 from Decorators import TimeMeasure
+from astropy import units as u
+from concurrent.futures import ProcessPoolExecutor
+from concurrent.futures import ThreadPoolExecutor
+import matplotlib.pyplot as plt
+from itertools import repeat
 
 @TimeMeasure
 def generate_injection_list(split: dict, number_slides: int, unequal_split_index: int = 0):
