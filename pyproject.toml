@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "breakthroughautoencoder"
+version = "0.1.0"
+description = ""
+authors = ["kaimul19 <kaimulcock19@gmail.com>"]
+license = "MIT"
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+numba = "^0.60.0"
+blimpy = "^2.1.4"
+setigen = "^2.7.0"
+tqdm = "^4.67.1"
+matplotlib = "^3.10.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
