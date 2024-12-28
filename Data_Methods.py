@@ -113,7 +113,7 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
         data = data[:, :trim_length]  # trim the data to be a multiple of bin_length
         del wf  # delete the waterfall object for data efficiency
         gc.collect()
-        run_loop(data, final_array, number_bins, bin_length, i)
+        run_loop(data=data, output_array=final_array, number_bins=number_bins, bin_length=bin_length, index=i)
         final_array.flush()
 
     if loading_bar_visibie:
