@@ -88,16 +88,54 @@ def threshold_and_normalise_data(data: np.ndarray, theshold_sigma):
 
     return data
 
+
+
+
+
+def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_type: str, true_false_split: dict, loading_bar_bool: bool = True, num_workers: int = 20):
     """
+    Add a specific injection type to the data.
+
+    Parameters:
+    - data: Input data array.
+    - signal_params: Parameters for the signal injection.
+    - injection_type: The type of injection to add.
+    - true_false_split: Dictionary specifying indices for True/False signals.
+    - loading_bar_bool: If True, display a loading bar.
+    - num_workers: Number of workers for parallel processing.
+
+    Returns:
+    - Updated data with injections.
     """
     if injection_type == "Background":
         return data  # No injection needed
-    
-    cadences = generate_frames(data)
+
+    # Generate true/false index dictionary
+    true_false_index_dictionary = generate_injection_list(true_false_split, data.shape[0], unequal_split_index=1)
+    # unified_True_false_list = [""] * data.shape[0]
+
+    # for true_index in true_false_index_dictionary["True"]:
+    #     print(f"{true_index=}")
+    #     unified_True_false_list[true_index] = "True"
+
+    # for false_index in true_false_index_dictionary["False"]:
+    #     print(f"{false_index=}")
+    #     unified_True_false_list[false_index] = "False"
+
+    # print(true_false_index_dictionary)
+    # Generate frames for each cadence
+    cadences = generate_frames(data, repeat(true_false_index_dictionary), max_workers=num_workers)
+
     if injection_type == "Linear":
-        data = add_linear(data, signal_params, loading_bar_bool)
+        # Parallel processing
+        with ThreadPoolExecutor() as executor:
+            updated_cadences = list(executor.map(add_linear, cadences, repeat(signal_params)))
+
     else:
         raise ValueError(f"Invalid injection type: {injection_type}")
+
+
+    data = return_to_data(updated_cadences)
 
     return data
 
