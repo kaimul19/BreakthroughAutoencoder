@@ -70,6 +70,21 @@ def inject_signals(data: np.ndarray,
         print(f"{len(indexes)=}")
         data[indexes, :, :, :] = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
 
+    return data
+
+# @njit(parallel=True)
+def threshold_and_normalise_data(data: np.ndarray, theshold_sigma):
+    data = np.log(data)  # Shape: (N, 6, 16, 4096)
+
+    # Compute mean and std along the last axis (axis=-1, corresponding to 4096)
+    mean = np.mean(data, axis=-1, keepdims=True)  # Shape: (N, 6, 16, 1)
+    std = np.std(data, axis=-1, keepdims=True)    # Shape: (N, 6, 16, 1)
+
+    # Create a mask for all entries
+    mask = data > mean + 5 * std  # Shape: (N, 6, 16, 4096)
+
+    # Apply the mask to create the altered array
+    data = np.where(mask, 1, 0)  # Shape: (N, 6, 16, 4096)
 
     return data
 
