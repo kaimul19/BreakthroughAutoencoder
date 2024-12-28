@@ -104,4 +104,6 @@ def generate_frames(data):
 if __name__ == "__main__":
     signal_split = {"Background": 0.5, "Linear": 0.5}
     number_slides = 99
-    generate_injection_list(signal_split, number_slides)
+    output_dictionary = generate_injection_list(signal_split, number_slides)
+    print(f"{len(output_dictionary["Background"])=}, {len(output_dictionary["Linear"])=}")
+    
