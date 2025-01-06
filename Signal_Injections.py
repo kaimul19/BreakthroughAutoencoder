@@ -68,13 +68,18 @@ def inject_signals(data: np.ndarray,
     signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
     keys = list(signal_split.keys())
 
+    true_false_dictionary = {}
+
+
     # Loop through the injections
     for key in keys:
         print(f"Injecting {key} signals")
         indexes = signal_index_dictionary[key]
         print(f"{len(indexes)=}")
-        data[indexes, :, :, :] = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
+        print(f"data[indexes, :, :, :].shape={data[indexes, :, :, :].shape}")
 
+        data[indexes, :, :, :], dict_to_append = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
+        true_false_dictionary = update_dictionary(true_false_dictionary, dict_to_append)
     for i in range(0,100,10):
     # subplot now
         fig, axs = plt.subplots(5, 1)
@@ -86,6 +91,26 @@ def inject_signals(data: np.ndarray,
     print(f"{data.shape=}")
 
     return data
+
+def update_dictionary(dictionary_to_update, dict_to_append):
+    """
+    Update a dictionary with another dictionary.
+
+    Parameters:
+    - dictionary_to_update: The dictionary to update.
+    - dict_to_append: The dictionary to append.
+
+    Returns:
+    - The updated dictionary.
+
+    
+    """
+    for key in dict_to_append:
+        if key in dictionary_to_update:
+            dictionary_to_update[key].extend(dict_to_append[key])
+        else:
+            dictionary_to_update[key] = dict_to_append[key]
+    return dictionary_to_update
 
 # @njit(parallel=True)
 def threshold_and_normalise_data(data: np.ndarray, theshold_sigma):
@@ -120,10 +145,12 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
     - num_workers: Number of workers for parallel processing.
 
     Returns:
-    - Updated data with injections.
+    - Updated data array.
+    - Dictionary specifying True/False indices.
     """
     if injection_type == "Background":
-        return data  # No injection needed
+        true_false_index_dictionary = {}
+        return data, true_false_index_dictionary  # No injection needed
 
     # Generate true/false index dictionary
     true_false_index_dictionary = generate_injection_list(true_false_split, data.shape[0], unequal_split_index=1)
@@ -152,7 +179,7 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
 
     data = return_to_data(updated_cadences)
 
-    return data
+    return data, true_false_index_dictionary
 
 
 def return_to_data(cadences):
