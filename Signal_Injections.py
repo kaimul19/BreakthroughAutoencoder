@@ -294,7 +294,7 @@ def generate_frames(data, true_false_index_dictionary, max_workers=20):
         # No need to multiply the dictionary; it maps 1-to-1 with data
         cadences = list(executor.map(process_into_cadence, data, true_false_index_dictionary))
 
-    return cadences
+    return np.array(cadences)
 
 
 def process_into_cadence(data_slice, true_false_index_dictionary):
