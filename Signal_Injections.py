@@ -343,12 +343,12 @@ def process_into_cadence(data_slice, true_false_index_dictionary):
 
             
 if __name__ == "__main__":
-    signal_split = {"Background": 0.0, "Linear": 1}
+    signal_split = {"Background": 0.01, "Linear": 0.99}
     number_slides = 100
     output_dictionary = generate_injection_list(signal_split, number_slides)
     # print(f"{len(output_dictionary["Background"])=}, {len(output_dictionary["Linear"])=}")
 
-    true_false_split = {"True": 1, "False": 0}
+    true_false_split = {"True": 0.5, "False": 0.5}
     output_dictionary2 = generate_injection_list(true_false_split, number_slides)
     # print(f"{output_dictionary2=}")
     # print(f"{output_dictionary2["True"]=}")
@@ -359,7 +359,6 @@ if __name__ == "__main__":
     #     print("In False")
     mask = generate_injection_list(true_false_split, number_slides)
 
-    print(f"{np.sum(mask)=}, {len(mask)=}")
 
     import os 
     print(f"{os.getcwd()=}")
