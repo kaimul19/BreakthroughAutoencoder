@@ -9,6 +9,7 @@ from concurrent.futures import ThreadPoolExecutor
 import matplotlib.pyplot as plt
 from itertools import repeat
 
+
 @TimeMeasure
 def generate_injection_list(split: dict, number_slides: int, unequal_split_index: int = 0):
     """
@@ -103,7 +104,6 @@ def update_dictionary(dictionary_to_update, dict_to_append):
     Returns:
     - The updated dictionary.
 
-    
     """
     for key in dict_to_append:
         if key in dictionary_to_update:
@@ -154,17 +154,7 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
 
     # Generate true/false index dictionary
     true_false_index_dictionary = generate_injection_list(true_false_split, data.shape[0], unequal_split_index=1)
-    # unified_True_false_list = [""] * data.shape[0]
 
-    # for true_index in true_false_index_dictionary["True"]:
-    #     print(f"{true_index=}")
-    #     unified_True_false_list[true_index] = "True"
-
-    # for false_index in true_false_index_dictionary["False"]:
-    #     print(f"{false_index=}")
-    #     unified_True_false_list[false_index] = "False"
-
-    # print(true_false_index_dictionary)
     # Generate frames for each cadence
     cadences = generate_frames(data, repeat(true_false_index_dictionary), max_workers=num_workers)
 
