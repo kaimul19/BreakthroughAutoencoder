@@ -132,7 +132,7 @@ def threshold_and_normalise_data(data: np.ndarray, theshold_sigma):
 
 
 
-def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_type: str, true_false_split: dict, loading_bar_bool: bool = True, num_workers: int = 20):
+def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_type: str, true_false_split: dict, loading_bar_bool: bool = True, num_workers: int = 20, bin_width = 4096):
     """
     Add a specific injection type to the data.
 
@@ -206,7 +206,7 @@ def return_to_data(cadences):
 
 
 
-def add_linear(cadence, signal_params):
+def add_linear(cadence, signal_params, true_or_false, bin_width = 4096):
     """
     Add a linear signal to the "A" observations in the given cadence.
 
@@ -217,6 +217,32 @@ def add_linear(cadence, signal_params):
     Returns:
     - Updated OrderedCadence object.
     """
+
+    print("made it to the funciton")
+    print(f"{cadence=}")
+    print(f"{cadence.shape=}")
+    start = int(rd.random()*(bin_width-1))+1    # Start the line in some random point along frequency
+    RandMultiplier = rd.choice([-1, 1])
+    if RandMultiplier == -1:
+        # print("Negative")
+        MaxSlope = -(96/start) * (18.25361108/2.7939677238464355)
+        slope = MaxSlope 
+        drift = (1/slope)* rd.random()
+        
+    else:
+        # print("positive")
+        spaceToEnd = bin_width - start
+        MaxSlope = (96/spaceToEnd) * (18.25361108/2.7939677238464355)
+        slope = MaxSlope 
+        drift = (1/slope)* rd.random()
+
+    # if wide == False:
+    #     width = rd.random()*50+abs(drift)*18
+    # else:
+    #     width = rd.uniform(400,900)+abs(drift)*18
+
+
+
     # Add a signal to frames labeled "A"
     cadence.by_label("A").add_signal(stg.constant_path(f_start=cadence[0].get_frequency(index=600),
                                drift_rate=4*u.Hz/u.s),
