@@ -188,7 +188,7 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
         raise ValueError(f"Invalid injection type: {injection_type}")
 
 
-    data = return_to_data(updated_cadences)
+    data = return_to_data(cadences)
 
     return data, true_false_index_dictionary
 
