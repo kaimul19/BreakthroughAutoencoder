@@ -171,8 +171,19 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
     if injection_type == "Linear":
         # Parallel processing
         with ThreadPoolExecutor() as executor:
-            updated_cadences = list(executor.map(add_linear, cadences, repeat(signal_params)))
-
+            print("Injecting linear signals")
+            print("True")
+            cadences[true_false_index_dictionary["True"]] = list(executor.map(add_linear, 
+                                                                              cadences[true_false_index_dictionary["True"]], 
+                                                                              repeat(signal_params), 
+                                                                              repeat(True), 
+                                                                              repeat(bin_width)))
+            print("False")
+            cadences[true_false_index_dictionary["False"]] = list(executor.map(add_linear, 
+                                                                               cadences[true_false_index_dictionary["False"]], 
+                                                                               repeat(signal_params), 
+                                                                               repeat(False), 
+                                                                               repeat(bin_width)))
     else:
         raise ValueError(f"Invalid injection type: {injection_type}")
 
