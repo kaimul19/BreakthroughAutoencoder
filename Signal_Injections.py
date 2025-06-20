@@ -430,7 +430,7 @@ if __name__ == "__main__":
     file_name = 'Data/HIP13402-2/seperated_raw_data.npy'
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
-    print(f"Data shape: {data.shape}
+    print(f"Data shape: {data.shape}")
     data2 = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
     for i in range(0,100,10):
