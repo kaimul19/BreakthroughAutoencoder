@@ -149,6 +149,9 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
     # Generate frames for each cadence
     cadences = generate_frames(data, repeat(true_false_index_dictionary), max_workers=num_workers)
 
+    # Go through and add the signals to the cadences
+
+    # Add the linear lines
     if injection_type == "Linear":
         # Parallel processing
         with ThreadPoolExecutor() as executor:
