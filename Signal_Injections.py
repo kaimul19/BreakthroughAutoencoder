@@ -8,6 +8,7 @@ from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
 import matplotlib.pyplot as plt
 from itertools import repeat
+from tqdm import tqdm
 
 
 @TimeMeasure
