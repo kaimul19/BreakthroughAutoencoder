@@ -447,6 +447,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         # Ensure data is flushed back to disk
         data.flush()
         print(f"Chunk {chunk_idx + 1} flushed to disk.")
+        break # only go through one chunk for testing
 
     
     # Sort by index
