@@ -404,8 +404,16 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     - The memory-mapped data if `return_data` is True, otherwise None.
     shape: (N, 6, 16, 4096) where N is the number of cadences
     """
+    # Create a copy of the file before modifying
+    processed_path = memmap_file.replace("seperated_raw_data", "seperated_processed_data")
+    print(f"Copying {memmap_file} to {processed_path} to preserve the original.")
+
+    # Do the copy before opening any memmap to prevent accidental write
+    with open(memmap_file, 'rb') as fsrc, open(processed_path, 'wb') as fdst:
+        fdst.write(fsrc.read())
+        
     # Open the memmap file in read-write mode
-    data = np.memmap(memmap_file, dtype='float32', mode='r+', shape=data_shape)
+    data = np.memmap(processed_path, dtype='float32', mode='r+', shape=data_shape)
 
     # Adjust the data slice and shape for the start_index
     total_samples = data_shape[0] - start_index  # Total remaining samples from the start_index
