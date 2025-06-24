@@ -533,7 +533,7 @@ if __name__ == "__main__":
             axs[j].set_ylabel(f"Cadence {j}", fontsize=8)
 
         # Add a single title to the whole figure
-        title_text = f"Index {i} — Type: {injection_type[0]}, True: {injection_type[1]}, Frame flags: {frame_flags}"
+        title_text = f"Index {i} — Flavour: {injection_type[0]}, Signal Type: {injection_type[1]}, Frame flags: {frame_flags}"
         fig.suptitle(title_text, fontsize=10)
 
         plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to fit suptitle
