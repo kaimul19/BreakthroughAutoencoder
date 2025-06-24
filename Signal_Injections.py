@@ -9,6 +9,8 @@ from concurrent.futures import ThreadPoolExecutor
 import matplotlib.pyplot as plt
 from itertools import repeat
 from tqdm import tqdm
+import pickle
+import os
 
 
 # @TimeMeasure
@@ -408,7 +410,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     # Adjust the data slice and shape for the start_index
     total_samples = data_shape[0] - start_index  # Total remaining samples from the start_index
     num_chunks = (total_samples + chunk_size - 1) // chunk_size  # Ceil division for the adjusted range
-
+    all_metadata = []  # List to store metadata for all chunks
     for chunk_idx in range(num_chunks):
         # Determine the start and end indices for this chunk
         start_idx = start_index + chunk_idx * chunk_size
@@ -422,6 +424,9 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         # Process the chunk with inject_signals
         processed_chunk, chunk_metadata = inject_signals(chunk_data, signal_split, true_false_split, signal_params, num_workers=num_workers)
 
+        # Append the metadata for this chunk
+        all_metadata.extend(chunk_metadata)
+
         # Write the processed chunk back to the memmap file
         data[start_idx:end_idx] = processed_chunk
 
@@ -429,8 +434,17 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         data.flush()
         print(f"Chunk {chunk_idx + 1} flushed to disk.")
 
+    # save the metadata to a file
+    # Determine save path
+    metadata_path = os.path.join(os.path.dirname(memmap_file), "injection_metadata.pkl")
+
+    # Save the metadata using pickle
+    with open(metadata_path, "wb") as f:
+        pickle.dump(all_metadata, f)
+
+
     if return_data:
-        return data
+        return data, all_metadata
 
 
 
@@ -497,7 +511,7 @@ if __name__ == "__main__":
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
-    data2 = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
+    data2, injection_meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
     for i in range(0,100,10):
         # subplot now
