@@ -464,44 +464,26 @@ def build_injection_metadata(true_false_dictionary: dict,
                              injection_type: str, 
                              total_cadences: int, 
                              indexes_used: np.ndarray) -> list:
-    """
-    Builds metadata entries for each cadence based on injection type and true/false assignments.
-
-    Parameters:
-    - true_false_dictionary: Dictionary with "True" and "False" keys and arrays of relative indices.
-    - injection_type: Type of injection (e.g. "Linear" or "Background").
-    - total_cadences: Total number of cadences in the batch.
-    - indexes_used: The absolute indices from the original dataset corresponding to this batch.
-
-    Returns:
-    - metadata: A list where each element is of the form:
-        ((injection_type, is_true_injection), [bool, bool, bool, bool, bool, bool])
-    """
     metadata = []
 
     if injection_type == "Background":
-        # All cadences are background, so all frames are False
         for i in range(total_cadences):
-            metadata.append((("Background", False), [False] * 6))
+            metadata.append((indexes_used[i], ("Background", False), [False] * 6))
         return metadata
 
-    # For other injections
-    # Map relative to absolute indices
     true_indices = true_false_dictionary.get("True", [])
     false_indices = true_false_dictionary.get("False", [])
 
     for i in range(total_cadences):
         abs_index = indexes_used[i]
         if i in true_indices:
-            # True injection: frames 0,2,4 are True
-            metadata.append(((injection_type, True), [True if j % 2 == 0 else False for j in range(6)]))
+            metadata.append((abs_index, (injection_type, True), [True if j % 2 == 0 else False for j in range(6)]))
         elif i in false_indices:
-            # False injection: all frames are True
-            metadata.append(((injection_type, False), [True] * 6))
+            metadata.append((abs_index, (injection_type, False), [True] * 6))
         else:
             raise ValueError(f"Index {i} not found in either true or false injection dictionary.")
-
     return metadata
+
 
 
 
