@@ -63,6 +63,18 @@ def inject_signals(data: np.ndarray,
                    loading_bar_bool: bool = True,
                    num_workers: int = 20):
     """
+    Function to inject signals into the data.
+    Parameters:
+    - data: Input data array with shape (N, 6, 16, 4096).
+    - signal_split: Dictionary specifying the signal type split (e.g., {"Background": 0.2, "Linear": 0.8}).
+    - true_false_split: Dictionary specifying the True/False split (e.g., {"True": 0.3, "False": 0.7}).
+    - signal_params: Parameters for the signal injection (e.g., [f_start, drift_rate, snr]).
+    - loading_bar_bool: If True, display a loading bar.
+    - num_workers: Number of workers for parallel processing.
+    Returns:
+    - Updated data array with injected signals.
+    shape: (N, 6, 16, 4096) where N is the number of cadences
+
     """
 
     # Generate the injection list
