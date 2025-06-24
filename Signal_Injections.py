@@ -196,7 +196,6 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
                 )
 
             
-            print("Injecting False linear signals")
             cadences[true_false_index_dictionary["False"]] = list(
                 tqdm(
                     executor.map(
