@@ -474,7 +474,7 @@ def build_injection_metadata(true_false_dictionary: dict,
     Parameters:
     - true_false_dictionary: Dictionary containing True/False indices.
     - injection_type: Type of injection (e.g., "Background", "Linear").
-    - total_cadences: Total number of cadences in the data.
+    - total_cadences: Total number of cadences in the injection type.
     - indexes_used: Array of indices used for the current injection.
     Returns:
     - List of tuples containing metadata for each cadence.
