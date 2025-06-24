@@ -442,17 +442,21 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         data.flush()
         print(f"Chunk {chunk_idx + 1} flushed to disk.")
 
-    # save the metadata to a file
-    # Determine save path
-    metadata_path = os.path.join(os.path.dirname(memmap_file), "injection_metadata.pkl")
+    
+    # Sort by index
+    all_metadata.sort(key=lambda x: x[0])
 
-    # Save the metadata using pickle
-    with open(metadata_path, "wb") as f:
-        pickle.dump(all_metadata, f)
+    # Strip out index for saving as pure metadata array
+    stripped_metadata = [entry[1:] for entry in all_metadata]
 
+    # Convert to NumPy array
+    metadata_array = np.array(stripped_metadata, dtype=object)
+
+    # Save it
+    np.save(os.path.join(os.path.dirname(memmap_file), "injection_metadata.npy"), metadata_array)
 
     if return_data:
-        return data, all_metadata
+        return data, metadata_array
 
 
 
