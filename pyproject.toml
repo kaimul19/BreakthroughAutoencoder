@@ -13,8 +13,19 @@ blimpy = "^2.1.4"
 setigen = "^2.7.0"
 tqdm = "^4.67.1"
 matplotlib = "^3.10.0"
+torch = {version = "^2.7.1+cu126", source = "pytorch-cu126"}
+torchvision = {version = "^0.22.1+cu126", source = "pytorch-cu126"}
+torchaudio = {version = "^2.7.1+cu126", source = "pytorch-cu126"}
+ipykernel = "^6.29.5"
+ipywidgets = "^8.1.7"
+imageio = "^2.37.0"
 
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[[tool.poetry.source]]
+name = "pytorch-cu126"
+url = "https://download.pytorch.org/whl/cu126"
+priority = "explicit"
