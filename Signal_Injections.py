@@ -523,13 +523,24 @@ if __name__ == "__main__":
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
-    data2, injection_meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
+    data2, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
-    for i in range(0,100,10):
-        # subplot now
-        fig, axs = plt.subplots(6, 1)
+    for i in range(0, 100, 10):
+        # Unpack metadata
+        injection_type, frame_flags = meta_data[i]
+
+        # Create a figure with 6 subplots
+        fig, axs = plt.subplots(6, 1, figsize=(8, 10))
         for j in range(6):
             axs[j].imshow(data2[i, j, :, :], aspect='auto')
+            axs[j].set_ylabel(f"Cadence {j}", fontsize=8)
+
+        # Add a single title to the whole figure
+        title_text = f"Index {i} — Type: {injection_type[0]}, True: {injection_type[1]}, Frame flags: {frame_flags}"
+        fig.suptitle(title_text, fontsize=10)
+
+        plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to fit suptitle
         plt.savefig(f"2test{i}.png")
         plt.close()
+
     
