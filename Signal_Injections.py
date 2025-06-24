@@ -516,7 +516,7 @@ if __name__ == "__main__":
     import os 
     data_shape = np.load('Data/HIP13402-02/shape.npy')
     data_shape = tuple(int(dim) for dim in data_shape)
-    file_name = 'Data/HIP13402-2/seperated_raw_data.npy'
+    file_name = 'Data/HIP13402-02/seperated_raw_data.npy'
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
