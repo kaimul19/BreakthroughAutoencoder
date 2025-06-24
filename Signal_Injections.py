@@ -416,6 +416,8 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     with open(memmap_file, 'rb') as fsrc, open(processed_path, 'wb') as fdst:
         fdst.write(fsrc.read())
 
+    print(f"Copy completed. Now processing the data in chunks.")
+
     # Open the memmap file in read-write mode
     data = np.memmap(processed_path, dtype='float32', mode='r+', shape=data_shape)
 
