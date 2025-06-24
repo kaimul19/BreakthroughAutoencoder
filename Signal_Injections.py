@@ -515,7 +515,7 @@ if __name__ == "__main__":
 
 
     import os 
-    data_shape = np.load('Data/HIP13402-2/shape.npy')
+    data_shape = np.load('Data/HIP13402-02/shape.npy')
     data_shape = tuple(int(dim) for dim in data_shape)
     file_name = 'Data/HIP13402-2/seperated_raw_data.npy'
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
