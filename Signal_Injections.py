@@ -89,7 +89,10 @@ def inject_signals(data: np.ndarray,
     for key in keys:
         indexes = signal_index_dictionary[key]
 
+        # add the injection type to the data
         data[indexes, :, :, :], dict_to_append = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
+        
+        # Update the true_false_dictionary with the new injections
         true_false_dictionary = update_dictionary(true_false_dictionary, dict_to_append)
 
         # build metadata for the injection
