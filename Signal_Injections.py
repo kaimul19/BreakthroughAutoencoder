@@ -376,7 +376,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     Process a memory-mapped file in chunks, inject signals into the data, and write the processed chunks back to the file.
 
     Parameters:
-    - memmap_file: Path to the memory-mapped file.
+    - memmap_file: Path to the memory-mapped file. -> shape: (N, 6, 16, 4096)
     - signal_split: Dictionary specifying the signal type split (e.g., {"Background": 0.2, "Linear": 0.8}).
     - true_false_split: Dictionary specifying the True/False split (e.g., {"True": 0.3, "False": 0.7}).
     - signal_params: Parameters for the signal injection.
@@ -388,6 +388,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
 
     Returns:
     - The memory-mapped data if `return_data` is True, otherwise None.
+    shape: (N, 6, 16, 4096) where N is the number of cadences
     """
     # Open the memmap file in read-write mode
     data = np.memmap(memmap_file, dtype='float32', mode='r+', shape=data_shape)
