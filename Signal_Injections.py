@@ -82,6 +82,7 @@ def inject_signals(data: np.ndarray,
     keys = list(signal_split.keys())
 
     true_false_dictionary = {}
+    metadata = []
 
 
     # Loop through the injections
@@ -90,9 +91,17 @@ def inject_signals(data: np.ndarray,
 
         data[indexes, :, :, :], dict_to_append = add_injection_type(data[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
         true_false_dictionary = update_dictionary(true_false_dictionary, dict_to_append)
+
+        # build metadata for the injection
+        metadata += build_injection_metadata(
+            true_false_dictionary=dict_to_append,
+            injection_type=key,
+            total_cadences=len(indexes),
+            indexes_used=indexes
+        )
     data = threshold_and_normalise_data(data, 5)
 
-    return data
+    return data, metadata
 
 # @TimeMeasure
 def update_dictionary(dictionary_to_update, dict_to_append):
@@ -408,7 +417,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         chunk_data = data[start_idx:end_idx]
 
         # Process the chunk with inject_signals
-        processed_chunk = inject_signals(chunk_data, signal_split, true_false_split, signal_params, num_workers=num_workers)
+        processed_chunk, chunk_metadata = inject_signals(chunk_data, signal_split, true_false_split, signal_params, num_workers=num_workers)
 
         # Write the processed chunk back to the memmap file
         data[start_idx:end_idx] = processed_chunk
