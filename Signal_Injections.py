@@ -402,7 +402,12 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
 
     Returns:
     - The memory-mapped data if `return_data` is True, otherwise None.
+    - Metadata array containing information about the injections.
     shape: (N, 6, 16, 4096) where N is the number of cadences
+
+    Also saves the metadata as a NumPy array in the same directory as the memmap file.
+    And creates a copy of the original memmap file to preserve it before processing.
+
     """
     # Create a copy of the file before modifying
     processed_path = memmap_file.replace("seperated_raw_data", "seperated_processed_data")
@@ -411,7 +416,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     # Do the copy before opening any memmap to prevent accidental write
     with open(memmap_file, 'rb') as fsrc, open(processed_path, 'wb') as fdst:
         fdst.write(fsrc.read())
-        
+
     # Open the memmap file in read-write mode
     data = np.memmap(processed_path, dtype='float32', mode='r+', shape=data_shape)
 
@@ -464,6 +469,17 @@ def build_injection_metadata(true_false_dictionary: dict,
                              injection_type: str, 
                              total_cadences: int, 
                              indexes_used: np.ndarray) -> list:
+    """
+    Build metadata for the injection based on the true/false dictionary and injection type.
+    Parameters:
+    - true_false_dictionary: Dictionary containing True/False indices.
+    - injection_type: Type of injection (e.g., "Background", "Linear").
+    - total_cadences: Total number of cadences in the data.
+    - indexes_used: Array of indices used for the current injection.
+    Returns:
+    - List of tuples containing metadata for each cadence.
+
+    """
     metadata = []
 
     if injection_type == "Background":
