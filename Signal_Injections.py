@@ -425,6 +425,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     total_samples = data_shape[0] - start_index  # Total remaining samples from the start_index
     num_chunks = (total_samples + chunk_size - 1) // chunk_size  # Ceil division for the adjusted range
     all_metadata = []  # List to store metadata for all chunks
+    count = 0
     for chunk_idx in range(num_chunks):
         # Determine the start and end indices for this chunk
         start_idx = start_index + chunk_idx * chunk_size
@@ -437,7 +438,9 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
 
         # Process the chunk with inject_signals
         processed_chunk, chunk_metadata = inject_signals(chunk_data, signal_split, true_false_split, signal_params, num_workers=num_workers)
-
+        chunk_metadata.sort(key=lambda t: int(t[0]))
+        chunk_metadata = [(info, flags) for (_, info, flags) in chunk_metadata]
+        # print(f"{chunk_metadata=}")
         # Append the metadata for this chunk
         all_metadata.extend(chunk_metadata)
 
@@ -447,17 +450,32 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
         # Ensure data is flushed back to disk
         data.flush()
         print(f"Chunk {chunk_idx + 1} flushed to disk.")
-        break # only go through one chunk for testing
+        # if count == 3:
+        #     break # only go through one chunk for testing
+        # for i in range(0, 10, 1):
+        #     # Unpack metadata
+        #     injection_type, frame_flags = chunk_metadata[i]
 
-    
-    # Sort by index
-    all_metadata.sort(key=lambda x: x[0])
+        #     # Create a figure with 6 subplots
+        #     fig, axs = plt.subplots(6, 1, figsize=(8, 10))
+        #     for j in range(6):
+        #         axs[j].imshow(processed_chunk[i, j, :, :], aspect='auto')
+        #         axs[j].set_ylabel(f"Cadence {j}", fontsize=8)
 
-    # Strip out index for saving as pure metadata array
-    stripped_metadata = [entry[1:] for entry in all_metadata]
+        #     # Add a single title to the whole figure
+        #     title_text = f"Index {i} — Flavour: {injection_type[0]}, Signal Type: {injection_type[1]}, Frame flags: {frame_flags}"
+        #     fig.suptitle(title_text, fontsize=10)
+
+        #     plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to fit suptitle
+        #     plt.savefig(f"{count}test{i}.png")
+        #     plt.close()
+
+        count +=1
+
+            
 
     # Convert to NumPy array
-    metadata_array = np.array(stripped_metadata, dtype=object)
+    metadata_array = np.array(all_metadata, dtype=object)
 
     # Save it
     np.save(os.path.join(os.path.dirname(memmap_file), "injection_metadata.npy"), metadata_array)
