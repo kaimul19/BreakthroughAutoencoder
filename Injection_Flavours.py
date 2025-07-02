@@ -1,3 +1,10 @@
+import numpy as np              # np.array, arithmetic
+import random as rd             # rd.random, rd.choice
+import setigen as stg           # stg.constant_path, stg.Frame, …
+from astropy import units as u  # u.Hz, u.s  (Astropy units)
+
+# Optional – only if you keep the decorator line
+from Decorators import TimeMeasure
 
 
 # @TimeMeasure
