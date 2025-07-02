@@ -6,7 +6,7 @@ from Decorators import TimeMeasure
 from astropy import units as u
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
-from Injection_Flavours import add_linear
+from Injection_Flavours import add_linear, add_sinusoid
 import matplotlib.pyplot as plt
 from itertools import repeat
 from tqdm import tqdm
@@ -182,6 +182,8 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
     if injection_type == "Linear":
         add_signal_with_threads(cadences, injection_type, add_linear, true_false_index_dictionary, signal_params, bin_width=bin_width)
 
+    elif injection_type == "Sinusoid":
+        add_signal_with_threads(cadences, injection_type, add_sinusoid, true_false_index_dictionary, signal_params, bin_width=bin_width)
     data = return_to_data(cadences)
 
     return data, true_false_index_dictionary
