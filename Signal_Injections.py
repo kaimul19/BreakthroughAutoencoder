@@ -179,43 +179,50 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
 
     # Add the linear lines
     if injection_type == "Linear":
-        # Parallel processing
-        with ThreadPoolExecutor() as executor:
-            cadences[true_false_index_dictionary["True"]] = list(
-                tqdm(
-                    executor.map(
-                        add_linear, 
-                        cadences[true_false_index_dictionary["True"]], 
-                        repeat(signal_params), 
-                        repeat(True), 
-                        repeat(bin_width),
-                    ),
-                    total=len(true_false_index_dictionary["True"]), 
-                    desc="Injecting True linear signals",
-                    )
-                )
-
-            
-            cadences[true_false_index_dictionary["False"]] = list(
-                tqdm(
-                    executor.map(
-                        add_linear, 
-                        cadences[true_false_index_dictionary["False"]], 
-                        repeat(signal_params), 
-                        repeat(False), 
-                        repeat(bin_width),
-                    ),
-                    total=len(true_false_index_dictionary["False"]), 
-                    desc="Injecting False linear signals",
-                    )
-                )
-    else:
-        raise ValueError(f"Invalid injection type: {injection_type}")
-
+        add_signal_with_threads(cadences, injection_type, add_linear, true_false_index_dictionary, signal_params, bin_width=bin_width)
 
     data = return_to_data(cadences)
 
     return data, true_false_index_dictionary
+
+
+def add_signal_with_threads(cadences, class_of_injection, injection_function, true_false_index_dictionary, signal_params, bin_width=4096):
+
+    # Add the linear lines
+    # Parallel processing
+    if class_of_injection != "Linear":
+        raise ValueError(f"Invalid injection type: {class_of_injection}")
+        
+    with ThreadPoolExecutor() as executor:
+        cadences[true_false_index_dictionary["True"]] = list(
+            tqdm(
+                executor.map(
+                    injection_function, 
+                    cadences[true_false_index_dictionary["True"]], 
+                    repeat(signal_params), 
+                    repeat(True), 
+                    repeat(bin_width),
+                ),
+                total=len(true_false_index_dictionary["True"]), 
+                desc="Injecting True linear signals",
+                )
+            )
+
+        
+        cadences[true_false_index_dictionary["False"]] = list(
+            tqdm(
+                executor.map(
+                    injection_function, 
+                    cadences[true_false_index_dictionary["False"]], 
+                    repeat(signal_params), 
+                    repeat(False), 
+                    repeat(bin_width),
+                ),
+                total=len(true_false_index_dictionary["False"]), 
+                desc="Injecting False linear signals",
+                )
+            )
+
 
 # @TimeMeasure
 def return_to_data(cadences):
