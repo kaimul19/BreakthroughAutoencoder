@@ -63,14 +63,21 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
 
     # Create final array
     if file_name is None:
-        import time, os, glob
+        timestamp = time.strftime('%d-%m-%Y %H:%M')
+        save_dir = f"Data/{timestamp}"
+        os.makedirs(save_dir, exist_ok=True)
 
-        os.makedirs(f"Data/{time.strftime('%d-%m-%Y %H:%M')}", exist_ok=True)
-        data_file_name = (
-            f"Data/{time.strftime('%d-%m-%Y %H:%M')}/seperated_raw_data.npy"
-        )
-        freq_file_name = f"Data/{time.strftime('%d-%m-%Y %H:%M')}/seperated_freqs.npy"
+        data_file_name = f"{save_dir}/seperated_raw_data.npy"
+        freq_file_name = f"{save_dir}/seperated_freqs.npy"
+        shape_file_name = f"{save_dir}/shape.npy"
+
         print(f"File name not provided, saving as {data_file_name}")
+    else:
+        # fallback if user provides file_name
+        data_file_name = f"{file_name}_data.npy"
+        freq_file_name = f"{file_name}_freqs.npy"
+        shape_file_name = f"{file_name}_shape.npy"
+
 
     final_array = np.memmap(
         data_file_name,
@@ -93,7 +100,8 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
     shape = (number_bins, 6, 16, bin_length)
 
     # Save the shape
-    np.save(f"Data/{time.strftime('%d-%m-%Y %H:%M')}/shape.npy", shape)
+    np.save(shape_file_name, shape)
+
 
     # Loop through each file
     print("Starting to loop through files")
