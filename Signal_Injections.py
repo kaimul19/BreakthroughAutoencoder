@@ -6,7 +6,7 @@ from Decorators import TimeMeasure
 from astropy import units as u
 from concurrent.futures import ProcessPoolExecutor
 from concurrent.futures import ThreadPoolExecutor
-from Injection_Flavours import add_linear, add_sinusoid
+from Injection_Flavours import add_linear, add_sinusoid, add_welsh_dragon
 import matplotlib.pyplot as plt
 from itertools import repeat
 from tqdm import tqdm
@@ -84,6 +84,24 @@ def inject_signals(data: np.ndarray,
     signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
     keys = list(signal_split.keys())
 
+    # Generate the injection list
+    signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
+    keys = list(signal_split.keys())
+
+    # ✅ Check for duplicated indices across injection types
+    all_indices = []
+    for key in keys:
+        all_indices.extend(signal_index_dictionary[key])
+    unique_indices = np.unique(all_indices)
+
+    if len(all_indices) != len(unique_indices):
+        from collections import Counter
+        dupes = [item for item, count in Counter(all_indices).items() if count > 1]
+        raise ValueError(f"❌ Duplicate indices found across injection types: {dupes[:10]}... (total {len(dupes)})")
+    else:
+        print("✅ No duplicated indices across injection types.")
+
+
     true_false_dictionary = {}
     metadata = []
 
@@ -105,7 +123,8 @@ def inject_signals(data: np.ndarray,
             total_cadences=len(indexes),
             indexes_used=indexes
         )
-    data = threshold_and_normalise_data(data, 5)
+
+    data = threshold_and_normalise_data(data, 2)
 
     return data, metadata
 
@@ -122,29 +141,54 @@ def update_dictionary(dictionary_to_update, dict_to_append):
     - The updated dictionary.
 
     """
-    for key in dict_to_append:
+    for key, value in dict_to_append.items():
+        # -------- ensure we always work with Python lists ----------
+        if isinstance(value, np.ndarray):            # convert incoming ndarray → list
+            value = value.tolist()
+        # -----------------------------------------------------------
         if key in dictionary_to_update:
-            dictionary_to_update[key].extend(dict_to_append[key])
+            if isinstance(dictionary_to_update[key], np.ndarray):   # convert stored ndarray → list
+                dictionary_to_update[key] = dictionary_to_update[key].tolist()
+            dictionary_to_update[key].extend(value)
         else:
-            dictionary_to_update[key] = dict_to_append[key]
+            dictionary_to_update[key] = value                          # already a list
     return dictionary_to_update
 
 # @njit(parallel=True)
 @TimeMeasure
-def threshold_and_normalise_data(data: np.ndarray, theshold_sigma):
-    data = np.log(data)  # Shape: (N, 6, 16, 4096)
+# @njit(parallel=True)
+# @njit(parallel=True)   # ← re-enable once you’re happy
+def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
+                                 ) -> np.ndarray:
+    """
+    Log-scale, row-wise (1 × 4096) sigma-clip and binarise the input.
 
-    # Compute mean and std along the last axis (axis=-1, corresponding to 4096)
-    mean = np.mean(data, axis=-1, keepdims=True)  # Shape: (N, 6, 16, 1)
-    std = np.std(data, axis=-1, keepdims=True)    # Shape: (N, 6, 16, 1)
+    Parameters
+    ----------
+    data : np.ndarray
+        Shape (N, 6, 16, 4096) – already loaded in RAM or from a memmap.
+    threshold_sigma : float
+        Threshold in units of σ above the per-row mean.
 
-    # Create a mask for all entries
-    mask = data > mean + theshold_sigma * std  # Shape: (N, 6, 16, 4096)
+    Returns
+    -------
+    np.ndarray
+        Binarised array of identical shape (dtype = uint8).
+    """
+    # 1. Log-scale (avoid log(0) issues if necessary beforehand)
+    data = np.log(data, where=data > 0, out=np.full_like(data, -np.inf))
 
-    # Apply the mask to create the altered array
-    data = np.where(mask, 1, 0)  # Shape: (N, 6, 16, 4096)
+    # 2. Row-wise μ and σ  →  keep last axis only (length 4096)
+    #    Resulting shapes: (N, 6, 16, 1)
+    mean = np.mean(data, axis=-1, keepdims=True)
+    std  = np.std (data, axis=-1, keepdims=True)
+    print(f"mean: {mean.shape}, std: {std.shape}, data: {data.shape}")
+    # 3. Threshold per row
+    mask = data > mean + threshold_sigma * std
 
-    return data
+    # 4. Return binary uint8 (saves 4× memory compared with float32)
+    return mask.astype(np.uint8)
+
 
 
 
@@ -184,8 +228,14 @@ def add_injection_type(data: np.ndarray, signal_params: np.ndarray, injection_ty
 
     elif injection_type == "Sinusoid":
         add_signal_with_threads(cadences, injection_type, add_sinusoid, true_false_index_dictionary, signal_params, bin_width=bin_width)
-    data = return_to_data(cadences)
 
+    elif injection_type == "Welsh_dragon":
+        add_signal_with_threads(cadences, injection_type, add_welsh_dragon, true_false_index_dictionary, signal_params, bin_width=bin_width)
+        # for i in range(12):
+        #     plt.imshow(cadences[i][0].get_data(), aspect='auto')
+        #     plt.savefig(f"test{i}.png")
+    
+    data = return_to_data(cadences)
     return data, true_false_index_dictionary
 
 
@@ -193,8 +243,7 @@ def add_signal_with_threads(cadences, class_of_injection, injection_function, tr
 
     # Add the linear lines
     # Parallel processing
-    if class_of_injection != "Linear":
-        raise ValueError(f"Invalid injection type: {class_of_injection}")
+
         
     with ThreadPoolExecutor() as executor:
         cadences[true_false_index_dictionary["True"]] = list(
@@ -443,10 +492,10 @@ def build_injection_metadata(true_false_dictionary: dict,
 
     """
     metadata = []
-
+    print(f"{total_cadences=}, {injection_type=}, {indexes_used=}")
     if injection_type == "Background":
         for i in range(total_cadences):
-            metadata.append((indexes_used[i], ("Background", False), [False] * 6))
+            metadata.append((indexes_used[i], ("Background", False), ["Background"] * 6))
         return metadata
 
     true_indices = true_false_dictionary.get("True", [])
@@ -455,9 +504,9 @@ def build_injection_metadata(true_false_dictionary: dict,
     for i in range(total_cadences):
         abs_index = indexes_used[i]
         if i in true_indices:
-            metadata.append((abs_index, (injection_type, True), [True if j % 2 == 0 else False for j in range(6)]))
+            metadata.append((abs_index, (injection_type, True), [injection_type if j % 2 == 0 else "Background" for j in range(6)]))
         elif i in false_indices:
-            metadata.append((abs_index, (injection_type, False), [True] * 6))
+            metadata.append((abs_index, (injection_type, False), [injection_type] * 6))
         else:
             raise ValueError(f"Index {i} not found in either true or false injection dictionary.")
     return metadata
@@ -467,11 +516,13 @@ def build_injection_metadata(true_false_dictionary: dict,
 
             
 if __name__ == "__main__":
-    signal_split = {"Background": 0.2, "Linear": 0.8}
+    signal_split = {"Background": 0.1, "Linear": 0.4475, "Sinusoid": 0.4475, "Welsh_dragon": 0.005}
+    # signal_split = {"Welsh_dragon": 1}
+    # signal_split = {"Sinusoid": 1}
     # number_slides = 100
     # output_dictionary = generate_injection_list(signal_split, number_slides)
 
-    true_false_split = {"True": 0.3, "False": 0.7}
+    true_false_split = {"True": 0.5, "False": 0.5}
     # output_dictionary2 = generate_injection_list(true_false_split, number_slides)
     # mask = generate_injection_list(true_false_split, number_slides)
 
@@ -480,12 +531,18 @@ if __name__ == "__main__":
     data_shape = np.load('Data/HIP13402-02/shape.npy')
     data_shape = tuple(int(dim) for dim in data_shape)
     file_name = 'Data/HIP13402-02/seperated_raw_data.npy'
+
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
+    # for i in range(0,40, 5):
+
+    #     plt.imshow(data[i, 0, :, :], aspect='auto')
+    #     plt.show()
+    #     plt.savefig(f"test{i}.png")
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
     data2, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
-    for i in range(0, 100, 10):
+    for i in range(0, 40, 5):
         # Unpack metadata
         injection_type, frame_flags = meta_data[i]
 
@@ -500,7 +557,7 @@ if __name__ == "__main__":
         fig.suptitle(title_text, fontsize=10)
 
         plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to fit suptitle
-        plt.savefig(f"2test{i}.png")
+        plt.savefig(f"final_test{i}.png")
         plt.close()
 
     
