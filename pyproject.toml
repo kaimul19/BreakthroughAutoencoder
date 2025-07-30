@@ -19,6 +19,10 @@ torchaudio = {version = "^2.7.1+cu126", source = "pytorch-cu126"}
 ipykernel = "^6.29.5"
 ipywidgets = "^8.1.7"
 imageio = "^2.37.0"
+scikit-learn = "^1.7.0"
+opencv-python-headless = "^4.11.0.86"
+corner = "^2.2.3"
+seaborn = "^0.13.2"
 
 
 [build-system]
