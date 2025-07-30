@@ -124,7 +124,7 @@ def inject_signals(data: np.ndarray,
             indexes_used=indexes
         )
 
-    data = threshold_and_normalise_data(data, 2)
+    data = threshold_and_normalise_data(data, 0)
 
     return data, metadata
 
@@ -178,6 +178,7 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
     # 1. Log-scale (avoid log(0) issues if necessary beforehand)
     data = np.log(data, where=data > 0, out=np.full_like(data, -np.inf))
 
+    """
     # 2. Row-wise μ and σ  →  keep last axis only (length 4096)
     #    Resulting shapes: (N, 6, 16, 1)
     mean = np.mean(data, axis=-1, keepdims=True)
@@ -186,8 +187,31 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
     # 3. Threshold per row
     mask = data > mean + threshold_sigma * std
 
+
     # 4. Return binary uint8 (saves 4× memory compared with float32)
     return mask.astype(np.uint8)
+    """
+
+    # 2. (Optional) you no longer need mean/std for normalization, so you can skip that.
+
+    # 3. Row-wise max → keep last axis
+    #    If data shape is (N, 6, 16, 4096), max_per_row has shape (N, 6, 16, 1)
+    max_per_row = np.max(data, axis=-1, keepdims=True)
+
+    # 4. Divide by row-wise max, avoiding div by zero
+    normalized = np.divide(
+        data,
+        max_per_row,
+        out=np.zeros_like(data, dtype=np.float32),
+        where=max_per_row != 0
+    )
+
+    # 5. Return as float32 (values in [0,1])
+    return normalized.astype(np.float32)
+
+    
+
+
 
 
 
@@ -492,7 +516,7 @@ def build_injection_metadata(true_false_dictionary: dict,
 
     """
     metadata = []
-    print(f"{total_cadences=}, {injection_type=}, {indexes_used=}")
+    # print(f"{total_cadences=}, {injection_type=}, {indexes_used=}")
     if injection_type == "Background":
         for i in range(total_cadences):
             metadata.append((indexes_used[i], ("Background", False), ["Background"] * 6))
@@ -516,21 +540,23 @@ def build_injection_metadata(true_false_dictionary: dict,
 
             
 if __name__ == "__main__":
-    signal_split = {"Background": 0.1, "Linear": 0.4475, "Sinusoid": 0.4475, "Welsh_dragon": 0.005}
+    signal_split = {"Background": 0.125, "Linear": 0.4435, "Sinusoid": 0.4435, "Welsh_dragon": 0.005}
+    # signal_split = {"Background": 0.2, "Linear": 0.8}
     # signal_split = {"Welsh_dragon": 1}
     # signal_split = {"Sinusoid": 1}
     # number_slides = 100
     # output_dictionary = generate_injection_list(signal_split, number_slides)
 
-    true_false_split = {"True": 0.5, "False": 0.5}
+    true_false_split = {"True": 0.46, "False": 0.54}
+
     # output_dictionary2 = generate_injection_list(true_false_split, number_slides)
     # mask = generate_injection_list(true_false_split, number_slides)
 
 
     import os 
-    data_shape = np.load('Data/HIP13402-02/shape.npy')
+    data_shape = np.load('generated_data/background_seperated_raw_data_2_shape.npy')
     data_shape = tuple(int(dim) for dim in data_shape)
-    file_name = 'Data/HIP13402-02/seperated_raw_data.npy'
+    file_name = 'generated_data/background_seperated_raw_data_2.npy'
 
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # for i in range(0,40, 5):
@@ -540,9 +566,9 @@ if __name__ == "__main__":
     #     plt.savefig(f"test{i}.png")
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
-    data2, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10000.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
+    data2, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
-    for i in range(0, 40, 5):
+    for i in range(0, 40, 1):
         # Unpack metadata
         injection_type, frame_flags = meta_data[i]
 
@@ -557,7 +583,7 @@ if __name__ == "__main__":
         fig.suptitle(title_text, fontsize=10)
 
         plt.tight_layout(rect=[0, 0, 1, 0.97])  # Adjust layout to fit suptitle
-        plt.savefig(f"final_test{i}.png")
+        plt.savefig(f"Output_plots/final_test{i}.png")
         plt.close()
 
     
