@@ -1,0 +1,17 @@
+__pycache__/Decorators.cpython-312.pyc
+Data/HIP13402/seperated_freqs.npy
+Data/HIP13402/seperated_raw_data.npy
+Data/HIP13402/shape.npy
+HIP13402/seperated_freqs.npy
+HIP13402/seperated_raw_data.npy
+HIP13402/shape.npy
+*.png
+Data
+data
+mnist_data
+*.jpg
+*.gif
+__pycache__
+*.pt
+*.pth
+*.pdf
