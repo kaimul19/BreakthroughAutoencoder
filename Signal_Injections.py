@@ -174,12 +174,12 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
     # 1. Log-scale (avoid log(0) issues if necessary beforehand)
     data = np.log(data, where=data > 0, out=np.full_like(data, -np.inf))
 
-    """
+
     # 2. Row-wise μ and σ  →  keep last axis only (length 4096)
     #    Resulting shapes: (N, 6, 16, 1)
     mean = np.mean(data, axis=-1, keepdims=True)
-    std  = np.std (data, axis=-1, keepdims=True)
-    print(f"mean: {mean.shape}, std: {std.shape}, data: {data.shape}")
+    std  = np.std(data, axis=-1, keepdims=True)
+    # print(f"mean: {mean.shape}, std: {std.shape}, data: {data.shape}")
     # 3. Threshold per row
     mask = data > mean + threshold_sigma * std
 
@@ -187,7 +187,6 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
     # 4. Return binary uint8 (saves 4× memory compared with float32)
     return mask.astype(np.uint8)
     """
-
     # 2. (Optional) you no longer need mean/std for normalization, so you can skip that.
 
     # 3. Row-wise max → keep last axis
