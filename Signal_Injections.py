@@ -203,7 +203,7 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
 
     # 5. Return as float32 (values in [0,1])
     return normalized.astype(np.float32)
-
+    """
     
 
 
