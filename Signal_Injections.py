@@ -120,7 +120,7 @@ def inject_signals(data: np.ndarray,
             indexes_used=indexes
         )
 
-    data = threshold_and_normalise_data(data, 0)
+    data = threshold_and_normalise_data(data, 2)
 
     return data, metadata
 
@@ -186,6 +186,7 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
 
     # 4. Return binary uint8 (saves 4× memory compared with float32)
     return mask.astype(np.uint8)
+
     """
     # 2. (Optional) you no longer need mean/std for normalization, so you can skip that.
 
