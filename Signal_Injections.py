@@ -550,7 +550,9 @@ if __name__ == "__main__":
 
 
     import os 
-    data_shape = np.load('generated_data/background_seperated_raw_data_2_shape.npy')
+    file_name = 'generated_data/background_seperated_raw_data.npy'
+    data_shape_name = file_name.replace('.npy', '_shape.npy')
+    data_shape = np.load(data_shape_name)
     data_shape = tuple(int(dim) for dim in data_shape)
     file_name = 'generated_data/background_seperated_raw_data_2.npy'
 
