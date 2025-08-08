@@ -276,7 +276,7 @@ def add_signal_with_threads(cadences, class_of_injection, injection_function, tr
                     repeat(bin_width),
                 ),
                 total=len(true_false_index_dictionary["True"]), 
-                desc="Injecting True linear signals",
+                desc="Injecting True signals",
                 )
             )
 
@@ -291,7 +291,7 @@ def add_signal_with_threads(cadences, class_of_injection, injection_function, tr
                     repeat(bin_width),
                 ),
                 total=len(true_false_index_dictionary["False"]), 
-                desc="Injecting False linear signals",
+                desc="Injecting False signals",
                 )
             )
 
