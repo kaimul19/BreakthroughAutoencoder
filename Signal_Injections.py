@@ -420,12 +420,23 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
 
     """
     # Create a copy of the file before modifying
-    processed_path = memmap_file.replace("seperated_raw_data", "seperated_processed_data")
+    processed_path = memmap_file.replace("raw_data", "processed_data")
     print(f"Copying {memmap_file} to {processed_path} to preserve the original.")
 
-    # Do the copy before opening any memmap to prevent accidental write
+    # 20 GiB buffer
+    copy_chunk_size = 30 * 1024**3  # bytes
+
+    # Ensure destination directory exists
+    os.makedirs(os.path.dirname(processed_path), exist_ok=True)
+
     with open(memmap_file, 'rb') as fsrc, open(processed_path, 'wb') as fdst:
-        fdst.write(fsrc.read())
+        while True:
+            buf = fsrc.read(copy_chunk_size)
+            if not buf:
+                break
+            fdst.write(buf)
+            # free the buffer right away
+            del buf
 
     print(f"Copy completed. Now processing the data in chunks.")
 
@@ -489,7 +500,14 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     metadata_array = np.array(all_metadata, dtype=object)
 
     # Save it
-    np.save(os.path.join(os.path.dirname(memmap_file), "injection_metadata.npy"), metadata_array)
+    base = os.path.splitext(os.path.basename(processed_path))[0]
+    metadata_filename = f"{base}_injection_metadata.npy"
+    metadata_path = os.path.join(os.path.dirname(processed_path), metadata_filename)
+    np.save(metadata_path, metadata_array)
+
+    shape_save_loc = processed_path.replace('.npy', '_shape.npy')
+    np.save(shape_save_loc, data_shape)
+
 
     if return_data:
         return data, metadata_array
@@ -537,6 +555,7 @@ def build_injection_metadata(true_false_dictionary: dict,
             
 if __name__ == "__main__":
     signal_split = {"Background": 0.125, "Linear": 0.4435, "Sinusoid": 0.4435, "Welsh_dragon": 0.005}
+    # signal_split = {"Background": 0.2, "Linear": 0.4, "Sinusoid": 0.38, "Welsh_dragon": 0.02}
     # signal_split = {"Background": 0.2, "Linear": 0.8}
     # signal_split = {"Welsh_dragon": 1}
     # signal_split = {"Sinusoid": 1}
@@ -544,6 +563,7 @@ if __name__ == "__main__":
     # output_dictionary = generate_injection_list(signal_split, number_slides)
 
     true_false_split = {"True": 0.46, "False": 0.54}
+    # true_false_split = {"True": 0.5, "False": 0.5}
 
     # output_dictionary2 = generate_injection_list(true_false_split, number_slides)
     # mask = generate_injection_list(true_false_split, number_slides)
@@ -554,7 +574,6 @@ if __name__ == "__main__":
     data_shape_name = file_name.replace('.npy', '_shape.npy')
     data_shape = np.load(data_shape_name)
     data_shape = tuple(int(dim) for dim in data_shape)
-    file_name = 'generated_data/background_seperated_raw_data_2.npy'
 
     data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
     # for i in range(0,40, 5):
