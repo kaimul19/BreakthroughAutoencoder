@@ -84,10 +84,6 @@ def inject_signals(data: np.ndarray,
     signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
     keys = list(signal_split.keys())
 
-    # Generate the injection list
-    signal_index_dictionary = generate_injection_list(signal_split, data.shape[0])
-    keys = list(signal_split.keys())
-
     # ✅ Check for duplicated indices across injection types
     all_indices = []
     for key in keys:
