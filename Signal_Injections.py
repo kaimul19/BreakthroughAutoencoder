@@ -583,17 +583,18 @@ if __name__ == "__main__":
     #     plt.savefig(f"test{i}.png")
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
-    data2, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
+    full_data, injections_only, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([1000, 0, 10.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
 
     for i in range(0, 40, 1):
         # Unpack metadata
         injection_type, frame_flags = meta_data[i]
 
         # Create a figure with 6 subplots
-        fig, axs = plt.subplots(6, 1, figsize=(8, 10))
+        fig, axs = plt.subplots(6, 2, figsize=(8, 10))
         for j in range(6):
-            axs[j].imshow(data2[i, j, :, :], aspect='auto')
-            axs[j].set_ylabel(f"Cadence {j}", fontsize=8)
+            axs[j,0].imshow(full_data[i, j, :, :], aspect='auto')
+            axs[j,0].set_ylabel(f"Cadence {j}", fontsize=8)
+            axs[j,1].imshow(injections_only[i, j, :, :], aspect='auto')
 
         # Add a single title to the whole figure
         title_text = f"Index {i} — Flavour: {injection_type[0]}, Signal Type: {injection_type[1]}, Frame flags: {frame_flags}"
