@@ -170,7 +170,7 @@ def chunk_and_generate_background(memory_map_file_path: str,
         return memory_map_data
 
 if __name__ == "__main__":
-    memory_map_output_path = "generated_data/background_seperated_raw_data_2.npy"
+    memory_map_output_path = "generated_data/background_seperated_raw_data_100k.npy"
     memory_map_dimensions  = (100_000, 6, 16, 4096)
     samples_per_chunk      = 10_000
     number_of_workers      = 20
