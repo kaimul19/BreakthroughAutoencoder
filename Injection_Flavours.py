@@ -34,7 +34,7 @@ def initial_params_generator(bin_width=4096):
     return start, drift, drift_factor, x_starts
 
 # @TimeMeasure
-def add_linear(cadence, signal_params, true_or_false, bin_width=4096):
+def add_linear(cadence, signal_only, signal_params, true_or_false, bin_width=4096):
     """
     Add a linear signal to the "A" observations in the given cadence.
 
@@ -54,12 +54,11 @@ def add_linear(cadence, signal_params, true_or_false, bin_width=4096):
     indexes = [0, 2, 4]  # Inject signals into these cadences
     intensity = cadence[0].get_intensity(snr=signal_to_noise)  # Signal intensity based on the first cadence
 
-    signal_array = np.zeros((len(cadence), 16, bin_width), dtype=np.float32)
 
     # Add the signal to the specified cadences
     for i in indexes:
         # Store the signal in signal_array
-        signal_array[i] = cadence[i].add_signal(
+        signal_only[i] = cadence[i].add_signal(
             stg.constant_path(
                 f_start=cadence[i].get_frequency(index=int(x_starts[i])),
                 drift_rate=drift * drift_factor * u.Hz / u.s,
@@ -74,7 +73,7 @@ def add_linear(cadence, signal_params, true_or_false, bin_width=4096):
         false_indexes = [1, 3, 5]  # Inject false signals into these cadences
         for i in false_indexes:
             # Store the signal in signal_array
-            signal_array[i] = cadence[i].add_signal(
+            signal_only[i] = cadence[i].add_signal(
                 stg.constant_path(
                     f_start=cadence[i].get_frequency(index=int(x_starts[i])),
                     drift_rate=drift * drift_factor * u.Hz / u.s,
@@ -88,11 +87,11 @@ def add_linear(cadence, signal_params, true_or_false, bin_width=4096):
     elif true_or_false != True:
         raise ValueError("true_or_false must be either True or False")
 
-    return cadence, signal_array
+    return cadence, signal_only
 
 
 
-def add_sinusoid(cadence, signal_params, true_or_false, bin_width= 4096):
+def add_sinusoid(cadence, signal_only, signal_params, true_or_false, bin_width= 4096):
 
         # Generate initial parameters
     start, drift, drift_factor, x_starts = initial_params_generator(bin_width)
@@ -101,11 +100,10 @@ def add_sinusoid(cadence, signal_params, true_or_false, bin_width= 4096):
     indexes = [0, 2, 4]  # Inject signals into these cadences
     intensity = cadence[0].get_intensity(snr=signal_to_noise)  # Signal intensity based on the first cadence
     
-    signal_array = np.zeros((len(cadence), 16, bin_width), dtype=np.float32)
 
     # Add the signal to the specified cadences
     for i in indexes:
-        signal_array[i] = cadence[i].add_signal(stg.sine_path(f_start=cadence[i].get_frequency(index=int(x_starts[i])),
+        signal_only[i] = cadence[i].add_signal(stg.sine_path(f_start=cadence[i].get_frequency(index=int(x_starts[i])),
                                         drift_rate=drift * drift_factor * u.Hz / u.s,
                                         period=100*u.s,
                                         amplitude=200*u.Hz),
@@ -116,7 +114,7 @@ def add_sinusoid(cadence, signal_params, true_or_false, bin_width= 4096):
     if not true_or_false:
         false_indexes = [1, 3, 5]  # Inject false signals into these cadences
         for i in false_indexes:
-            signal_array[i] = cadence[i].add_signal(stg.sine_path(f_start=cadence[i].get_frequency(index=int(x_starts[i])),
+            signal_only[i] = cadence[i].add_signal(stg.sine_path(f_start=cadence[i].get_frequency(index=int(x_starts[i])),
                                             drift_rate=drift * drift_factor * u.Hz / u.s,
                                             period=100*u.s,
                                             amplitude=200*u.Hz),
@@ -127,11 +125,12 @@ def add_sinusoid(cadence, signal_params, true_or_false, bin_width= 4096):
     elif true_or_false != True:
         raise ValueError("true_or_false must be either True or False")
 
-    return cadence, signal_array
+    return cadence, signal_only
     
 
 def add_welsh_dragon(
     cadence,
+    signal_only,
     signal_params,          # last element interpreted as SNR if present
     true_or_false: bool,
     bin_width: int = 4096,  # unused for this flavour but kept for API parity
@@ -160,11 +159,9 @@ def add_welsh_dragon(
     # 4) decide which frames get the flag
     true_frames  = [0, 2, 4]
     false_frames = [1, 3, 5]
-
-    signal_array = np.zeros((len(cadence), 16, bin_width), dtype=np.float32)
     
     for idx in true_frames:
-        signal_array[idx] = flag
+        signal_only[idx, y0:y0 + h, x0:x0 + w] += flag
         array_data = cadence[idx].get_data()          # direct view
         array_data[y0:y0 + h, x0:x0 + w] += flag
         cadence[idx].data[:] = array_data                         # write back
@@ -172,7 +169,7 @@ def add_welsh_dragon(
     if not true_or_false:
         false_frames = [1, 3, 5]
         for idx in false_frames:
-            signal_array[idx] = flag
+            signal_only[idx, y0:y0 + h, x0:x0 + w] += flag
             array_data = cadence[idx].get_data()          # direct view
             array_data[y0:y0 + h, x0:x0 + w] += flag
             cadence[idx].data[:] = array_data                         # write back
@@ -180,7 +177,7 @@ def add_welsh_dragon(
     if true_or_false not in (True, False):
         raise ValueError("true_or_false must be either True or False")
 
-    return cadence, signal_array
+    return cadence, signal_only
 
 
 
