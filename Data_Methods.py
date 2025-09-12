@@ -141,5 +141,5 @@ if __name__ == "__main__":
     ]
 
     data, freq, data_file_name, freq_file_name = data_parsing(
-        path, bin_length=4096, loading_bar_visibie=True
+        path, bin_length=4096, file_name = "raw_data", loading_bar_visibie=True
     )
