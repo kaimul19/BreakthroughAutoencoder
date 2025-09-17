@@ -62,7 +62,6 @@ class signal_data:
         self.sigma_multiplier = float(sigma_multiplier)                       # store sigma multiplier
 
 
-    @numba.jit(nopython=True)
     def compute_row_statistics(self):
         """
         Compute median and standard deviation for each row in the 2D signal array.
