@@ -9,6 +9,37 @@ def row_statistics(signal_snippet: np.ndarray, sigma_multiplier: float = 3.0):
     row_thresholds = row_medians + sigma_multiplier * row_standard_deviations  # compute thresholds
     return row_thresholds, row_medians, row_standard_deviations  # return results
 
+# dont jit this function as it uses non numba functions
+def _consolidate_1d(flattened_array: np.ndarray, maximum_gap: int, unique_id:tuple) -> np.ndarray:
+    """
+    Merge 1-runs in a 1D boolean/integer mask by filling gaps of length <= maximum_gap.
+    Returns a boolean 1D array with consolidated seeds.
+    """
+    distances = np.diff(flattened_array, prepend=0, append=0)   # compute differences to find seed boundaries
+    starts = np.flatnonzero(distances == 1)                     # find start indices of seeds
+    ends   = np.flatnonzero(distances == -1) - 1                # find end indices of seeds
+
+    if starts.size == 0:                
+        print(f"No Seeds Found in the snippet at index: {unique_id}")   # debug message if no seeds found
+        return np.zeros_like(flattened_array, dtype=bool)
+
+    gaps = (starts[1:] - ends[:-1]) - 1                         # compute gaps between seeds
+    cuts = np.where(gaps > maximum_gap)[0]                      # identify gaps larger than maximum_gap
+
+    merged_starts = np.r_[starts[0], starts[cuts + 1]]          # merge start indices
+    merged_ends   = np.r_[ends[cuts], ends[-1]]                 # merge end indices
+
+    difference_buffer = np.zeros(flattened_array.size + 1, dtype=np.int32)    # create difference buffer
+    np.add.at(difference_buffer, merged_starts, 1)                            # mark starts
+    np.add.at(difference_buffer, merged_ends + 1, -1)                         # mark ends
+
+    return np.cumsum(difference_buffer[:-1]) > 0                     # return consolidated boolean mask
+
+
+
+
+
+
 class signal_data:
     def __init__(self, signal_snippet: np.ndarray, sigma_multiplier: float = 3.0):
         """
@@ -67,7 +98,14 @@ class signal_data:
         if self.consolidated_group_boolean_mask is not None:
             raise ValueError("Consolidated group boolean mask already exists. You should not call this method twice.")
         
-        
+        seperation = maximum_gap + 1  # define seperation with additional index so that runs on edges are not merged
+        work = np.zeros((self.number_of_rows, 
+                            self.number_of_columns + seperation), dtype=bool) # padded work array to avoid wrap-around
+        work[:, :cols] = self.signal_snippet.astype(bool, copy=True) # populate work array
+        flat = work.ravel()                                      # flatten for processing
+        cons_flat = _consolidate_1d(flat, maximum_gap)            # call merging method
+        self.consolidated_group_boolean_mask = cons_flat.reshape(self.number_of_rows, 
+                                                    self.number_of_columns + seperation)[:, :cols] # reshape back and trim padding
 
 
     
