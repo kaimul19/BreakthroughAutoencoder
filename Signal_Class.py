@@ -154,12 +154,66 @@ class signal_data:
         Expand seed groups by including adjacent pixels that meet a lower threshold.
         """
     
-    def plot_1D(self):
+    def plot_1D(self, nothing_initial_or_consolidated: str = "initial", save_location: str = None, show_plot_bool: bool = True):
         """
         Plot the 1D signal data with thresholds and seed indicators.
+
+        Parameters:
+        - none_initial_or_consolidated (str): Choose between plotting the no seed masks, initial seed mask, 
+                                       or the consolidated group mask.
+                                       Options are "nothin", "initial" or "consolidated".
+        - save_location (str): Optional path to save the plot as a PDF.
+        - show_plot_bool (bool): Whether to display the plot interactively.
+
+        Produces:
+        - A series of 16 subplots (one for each row) showing the signal, threshold, and seed points.
+        - Displays the plot if show_plot_bool is True.
+        - Saves the plot as a PDF if a save_location is provided.
+
+
+        Note: Initial boolean mask or consolidated group boolean mask must be computed before calling this method.
         """
+
+        # Raise errors if prerequisites are not met
+        if nothing_initial_or_consolidated not in ["nothing", "initial", "consolidated"]:
+            raise ValueError("nothing_initial_or_consolidated must be either 'nothing', 'initial' or 'consolidated'")
+        if nothing_initial_or_consolidated == "initial" and self.initial_boolean_mask is None:
+            raise ValueError("Initial boolean mask must be computed before plotting initial seeds.")
+        elif nothing_initial_or_consolidated == "consolidated" and self.consolidated_group_boolean_mask is None:
+            raise ValueError("Consolidated group boolean mask must be computed before plotting consolidated seeds.")
+        fig, ax = plt.subplots(nrows=self.number_of_rows, ncols=1, figsize=(6, self.number_of_rows*1))  # create figure and axis
+        x_axis_values = np.arange(self.number_of_columns)            # x axis (column indices)
+        for row_index in range(self.number_of_rows):                 # iterate over rows
+            ax[row_index].plot(x_axis_values, self.signal_snippet[row_index], label='Signal', alpha=0.7)
+            ax[row_index].axhline(self.row_thresholds[row_index], color='orange', linestyle='--', label='Threshold')  # plot threshold
+            ax[row_index].axhline(self.row_medians[row_index], color='blue', linestyle=':', label='Median')  # plot median 
+            if nothing_initial_or_consolidated == "initial":
+                seed_columns = np.flatnonzero(self.initial_boolean_mask[row_index])
+                ax[row_index].scatter(seed_columns, self.signal_snippet[row_index, seed_columns], color='red', label='Initial Seeds', s=5)
+                fig.suptitle("1D Signal with Initial Seeds", y=0.995)
+            elif nothing_initial_or_consolidated == "consolidated":
+                seed_columns = np.flatnonzero(self.consolidated_group_boolean_mask[row_index])
+                ax[row_index].scatter(seed_columns, self.signal_snippet[row_index, seed_columns], color='red', label='Consolidated Seeds', s=5)
+                fig.suptitle("1D Signal with Consolidated Seeds", y=0.995)
+            elif nothing_initial_or_consolidated == "nothing":
+                fig.suptitle(f"1D Signal with No Seeds, unique_id: {self.unique_id}", y=0.995)
+            ax[row_index].set_ylabel(f"Row {row_index}")
+            # remove x labels
+            if row_index != self.number_of_rows - 1:
+                ax[row_index].set_xticklabels([])
+        ax[-1].set_xlabel("Column Index")
+
+        # add just one legend to the right of the plots outside of them
+        handles, labels = ax[0].get_legend_handles_labels()
+        fig.legend(handles, labels, loc='upper right', bbox_to_anchor=(1.0, 1), fontsize='small')
+
+        plt.tight_layout()
+        if show_plot_bool:
+            plt.show()
+        if isinstance(save_location, str):
+            fig.savefig(f"{save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
+            print(f"1D Plot saved to {save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
     
-    def plot_2D(self):
         """
         Plot the 2D signal data with thresholds and seed indicators.
         """
