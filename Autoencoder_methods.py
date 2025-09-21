@@ -13,11 +13,9 @@ from torch.utils.data import DataLoader
 from torchvision.utils import make_grid, save_image
 
 import matplotlib
-matplotlib.style.use('ggplot')
-torch.set_float32_matmul_precision('high')
 
-
-
+matplotlib.style.use("ggplot")
+torch.set_float32_matmul_precision("high")
 
 
 # @TimeMeasure
@@ -40,12 +38,6 @@ def run_loop(data, output_array, number_bins, index, bin_length=4096):
         output_array[j, index, :, :] = data[:, j * bin_length : (j + 1) * bin_length]
 
 
-
-
-
-
-
-
 @jit(nopython=True)
 def final_loss(bce_loss, mu, logvar):
     """
@@ -60,9 +52,10 @@ def final_loss(bce_loss, mu, logvar):
     - final_loss: the combined loss of BCE and KLD
     """
 
-    BCE = bce_loss 
+    BCE = bce_loss
     KLD = -0.5 * torch.sum(1 + logvar - mu.pow(2) - logvar.exp())
     return BCE + KLD
+
 
 def train(model, dataloader, dataset, device, optimizer, criterion):
     """
@@ -82,12 +75,14 @@ def train(model, dataloader, dataset, device, optimizer, criterion):
     model.train()
     running_loss = 0.0
     counter = 0
-    for i, data in tqdm(enumerate(dataloader), total=int(len(dataset)/dataloader.batch_size)):
+    for i, data in tqdm(
+        enumerate(dataloader), total=int(len(dataset) / dataloader.batch_size)
+    ):
         counter += 1
         if isinstance(data, (tuple, list)):
             data = data[0]
 
-        data = data.to(device) # send to GPU
+        data = data.to(device)  # send to GPU
 
         optimizer.zero_grad()
         reconstruction, mu, logvar = model(data)
@@ -115,13 +110,15 @@ def validate(model, dataloader, dataset, device, criterion):
     - running_loss: the average loss over the validation dataset
     - recon_images: the reconstructed images from the last batch
     """
-    
+
     model.eval()
     running_loss = 0.0
     counter = 0
     recon_images = None
     with torch.no_grad():
-        for i, data in tqdm(enumerate(dataloader), total=int(len(dataset)/dataloader.batch_size)):
+        for i, data in tqdm(
+            enumerate(dataloader), total=int(len(dataset) / dataloader.batch_size)
+        ):
             counter += 1
             if isinstance(data, (tuple, list)):
                 data = data[0]
