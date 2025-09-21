@@ -4,7 +4,7 @@ import numba
 
 
 # dont jit this function as it uses non numba functions
-def _consolidate_1d(flattened_array: np.ndarray, maximum_gap: int, unique_id:tuple) -> np.ndarray:
+def _consolidate_1d(flattened_array: np.ndarray, maximum_gap: int, unique_id:np.ndarray) -> np.ndarray:
     """
     Merge 1-runs in a 1D boolean/integer mask by filling gaps of length <= maximum_gap.
     Returns a boolean 1D array with consolidated seeds.
