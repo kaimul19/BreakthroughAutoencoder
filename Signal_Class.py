@@ -214,8 +214,60 @@ class signal_data:
             fig.savefig(f"{save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
             print(f"1D Plot saved to {save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
     
+    def plot_2D(self, nothing_initial_or_consolidated: str = "initial", save_location: str = None, show_plot_bool: bool = True):
         """
         Plot the 2D signal data with thresholds and seed indicators.
+
+        Parameters:
+        - none_nothing_initial_or_consolidated (str): Choose between plotting the no seed masks, initial seed mask, 
+                                       or the consolidated group mask.
+                                       Options are "nothin", "initial" or "consolidated".
+        - save_location (str): Optional path to save the plot as a PDF.
+        - show_plot_bool (bool): Whether to display the plot interactively.
+
+        Produces:
+        - A 2D plot showing the signal, thresholds, and seed points.
+        - Displays the plot if show_plot_bool is True.
+        - Saves the plot as a PDF if a save_location is provided.
+
+        Note: Initial boolean mask or consolidated group boolean mask must be computed before calling this method.
         """
+        # Raise errors if prerequisites are not met
+        if nothing_initial_or_consolidated not in ["nothing", "initial", "consolidated"]:
+            raise ValueError("nothing_initial_or_consolidated must be either 'nothing', 'initial' or 'consolidated'")
+        if nothing_initial_or_consolidated == "initial" and self.initial_boolean_mask is None:
+            raise ValueError("Initial boolean mask must be computed before plotting initial seeds.")
+        elif nothing_initial_or_consolidated == "consolidated" and self.consolidated_group_boolean_mask is None:
+            raise ValueError("Consolidated group boolean mask must be computed before plotting consolidated seeds.")
+        
+
+        fig, ax = plt.subplots(figsize=(12, 8))
+
+        cax = ax.imshow(self.signal_snippet, aspect='auto', cmap='viridis', interpolation='nearest')
+        fig.colorbar(cax, ax=ax, label='Signal Intensity')  # colorbar for signal intensity
+        x_axis_values = np.arange(self.number_of_columns)            # x axis (column indices)
+
+        for row_index in range(self.number_of_rows):                 # iterate over rows
+            if nothing_initial_or_consolidated == "initial":
+                seed_columns = np.flatnonzero(self.initial_boolean_mask[row_index])
+                ax.scatter(seed_columns, np.full_like(seed_columns, row_index), color='red', label='Initial Seeds' if row_index == 0 else "", s=10)
+                fig.suptitle("2D Signal with Initial Seeds", y=0.995)
+            elif nothing_initial_or_consolidated == "consolidated":
+                seed_columns = np.flatnonzero(self.consolidated_group_boolean_mask[row_index])
+                ax.scatter(seed_columns, np.full_like(seed_columns, row_index), color='red', label='Consolidated Seeds' if row_index == 0 else "", s=10)
+                fig.suptitle(f"2D Snippet with Consolidated Seeds, unique_id: {self.unique_id}", y=0.995)
+            elif nothing_initial_or_consolidated == "nothing":
+                fig.suptitle(f"2D Snippet with No Seeds, unique_id: {self.unique_id}", y=0.995)
+        ax.set_xlabel("Column Index")
+        ax.set_ylabel("Row Index")
+        ax.legend(loc='upper right')
+        # title
+        plt.tight_layout()
+        if show_plot_bool:
+            plt.show()
+        if isinstance(save_location, str):
+            fig.savefig(f"{save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
+            print(f"1D Plot saved to {save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
+
 
 
