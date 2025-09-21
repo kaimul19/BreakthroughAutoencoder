@@ -54,8 +54,35 @@ class signal_data:
         self.consolidated_group_boolean_mask = np.empty(self.signal_snippet.shape, 
                                         dtype=bool)                           # placeholder for consolidated mask
         self.sigma_multiplier = float(sigma_multiplier)                       # store sigma multiplier
-
-
+    def _return_shape(self):
+        """
+        Return the shape of the signal snippet.
+        """
+        return self.signal_snippet.shape
+    
+    def _return_statistics(self):
+        """
+        Return the computed row statistics: thresholds, medians, and standard deviations.
+        """
+        if self.row_thresholds is None or self.row_medians is None or self.row_std is None:
+            raise ValueError("Row statistics have not been computed yet.")
+        return self.row_thresholds, self.row_medians, self.row_std
+    
+    def _return_initial_mask(self):
+        """
+        Return the initial boolean mask of seed pixels.
+        """
+        if self.initial_boolean_mask is None:
+            raise ValueError("Initial boolean mask has not been computed yet.")
+        return self.initial_boolean_mask
+    
+    def _return_consolidated_mask(self):
+        """
+        Return the consolidated boolean mask of seed groups.
+        """
+        if self.consolidated_group_boolean_mask is None:
+            raise ValueError("Consolidated group boolean mask has not been computed yet.")
+        return self.consolidated_group_boolean_mask, self.consolidated_group_boolean_mask.shape
     def compute_row_statistics(self):
         """
         Compute median and standard deviation for each row in the 2D signal array.
