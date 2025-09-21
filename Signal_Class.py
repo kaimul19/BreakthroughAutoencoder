@@ -132,23 +132,57 @@ class signal_data:
                                                     self.number_of_columns + seperation)[:, :self.number_of_columns] # reshape back and trim padding
 
 
-    
-    def prune_functions(self, min_group_size: int = 3, gate_requirment_for_false: string = "and"):
+
+    def prune_methods(self, 
+        min_horizontal_size: int = 3,
+        min_vertical_size: int = 1,
+        drift_padding_size: int = 1,
+        min_neighbours: int = 1,
+        pad_mode: str = "constant",
+        gate_requirment_for_false: str = "or"
+    ):
         """
-        Prune consolidated groups based on size and other criteria.
+        Prune consolidated groups based on horizontal and vertical criteria.
         gate_requirment_for_false options are "and", "or", "horizontal", "vertical"
         """
+        if self.initial_boolean_mask is None:
+            raise ValueError("Initial boolean masks must be computed before pruning.")
+        
+        if gate_requirment_for_false not in ["and", "or", "horizontal", "vertical"]:
+            raise ValueError("gate_requirment_for_false must be one of 'and', 'or', 'horizontal', or 'vertical'.")
+
+        horizontal_pruned_mask = self._prune_horizontal(min_horizontal_size=min_horizontal_size) # first horizontal pruning
+
+        if gate_requirment_for_false == "horizontal":       # shortcut if only horizontal pruning is needed
+            final_pruned_mask = horizontal_pruned_mask
+            return final_pruned_mask                        # return pruned mask immediately, so vertical pruning is skipped
+
+        vertical_pruned_mask, _, _ = self._prune_vertical(                      # then vertical pruning
+            min_vertical_size=min_vertical_size,
+            drift_padding_size=drift_padding_size,
+            min_neighbours=min_neighbours,
+            pad_mode=pad_mode,
+        )
+
+        if gate_requirment_for_false == "vertical":         # shortcut if only vertical pruning is needed
+            final_pruned_mask = vertical_pruned_mask
+            return final_pruned_mask                        # return pruned mask immediately, so horizontal pruning is skipped
+
+        if gate_requirment_for_false == "or":                                   # combine masks with logical OR
+            final_pruned_mask = horizontal_pruned_mask | vertical_pruned_mask
+        elif gate_requirment_for_false == "and":                                # combine masks with logical AND
+            final_pruned_mask = horizontal_pruned_mask & vertical_pruned_mask
+        
+        return final_pruned_mask
     
-    def prune_horizontal(self, min_horizontal_size: int = 3):
+    def _prune_horizontal(self, min_horizontal_size: int = 3):
         """
         Prune groups that do not meet horizontal size criteria.
         """
-    
-    def prune_vertical(self, min_vertical_size: int = 3):
-        """
-        Prune groups that do not meet vertical size criteria.
-        """
-    
+
+
+    def _prune_vertical(
+        self,
     def grow_seeds(self, growth_threshold: float = 1.0):
         """
         Expand seed groups by including adjacent pixels that meet a lower threshold.
