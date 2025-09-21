@@ -447,4 +447,60 @@ class signal_data:
             print(f"1D Plot saved to {save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf")
 
 
+if __name__ == "__main__":
+    # Example usage
+    test_dataset = np.load("test_dataset.npy")  # Load a test dataset
+    test_labels = np.load("test_labels.npy", allow_pickle=True)    # Load corresponding labels
+    test_signal_only = np.load("test_signal_only_dataset.npy")  # Load signal-only data
+    id_pairs = np.array(list(test_labels[:, 3]), dtype=int)   # shape (M, 2), int
+
+
+    testing_snippet = test_dataset[0]
+
+    signal_instance = signal_data(testing_snippet, sigma_multiplier=3.0, unique_id=id_pairs[0])
+    signal_instance.compute_row_statistics()
+    signal_instance.get_seeds()
+    maximum_gap = 5
+
+    signal_instance.consolidate_seeds(max_pixel_distance_either_side=maximum_gap)
+
+    consolidated, shape = signal_instance._return_consolidated_mask()
+    print(f"{consolidated=}")
+    print(f"{shape=}")
+    print(f"{consolidated.sum()=}")
+
+
+    # plot initial seeds
+    signal_instance.plot_1D(nothing_initial_or_consolidated="consolidated", save_location=None, show_plot_bool=True)
+    # plot on 2d
+    signal_instance.plot_2D(nothing_initial_or_consolidated="consolidated", save_location=None, show_plot_bool=True)
+
+
+    # print(f"{test_dataset.shape=}, {test_labels.shape=}, {test_signal_only.shape=}")
+    # print(f"{test_labels[0:10]=}")
+    # fig, axs = plt.subplots(nrows= 2, ncols=2, figsize=(10, 6)) 
+    # for i in range(2):
+    #     axs[i,0].imshow(test_dataset[i], cmap='viridis', aspect='auto')
+    #     axs[i,1].imshow(test_signal_only[i], cmap='viridis', aspect='auto')
+    #     axs[i,0].set_ylabel(f"Snippet {i}")
+    #     axs[i,0].set_xlabel("Column Index")
+    #     # add subtitles
+    #     axs[i,1].set_xlabel(f"Column Index for label {test_labels[i]}, unique_id: {id_pairs[i]}")
+    # axs[0,0].set_title("Raw Data") 
+    # axs[0,1].set_title("Signal Only Data")
+        
+    # plt.tight_layout()
+    # plt.show()
+    
+
+
+
+
+        
+
+
+
+
+
+
 
