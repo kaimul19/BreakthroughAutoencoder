@@ -63,7 +63,7 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
 
     # Create final array
     if file_name is None:
-        timestamp = time.strftime('%d-%m-%Y %H:%M')
+        timestamp = time.strftime("%d-%m-%Y %H:%M")
         save_dir = f"Data/{timestamp}"
         os.makedirs(save_dir, exist_ok=True)
 
@@ -77,7 +77,6 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
         data_file_name = f"{file_name}_data.npy"
         freq_file_name = f"{file_name}_freqs.npy"
         shape_file_name = f"{file_name}_shape.npy"
-
 
     final_array = np.memmap(
         data_file_name,
@@ -102,7 +101,6 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
     # Save the shape
     np.save(shape_file_name, shape)
 
-
     # Loop through each file
     print("Starting to loop through files")
     # start the initial progress bar
@@ -121,7 +119,13 @@ def data_parsing(file_path, bin_length=4096, file_name=None, loading_bar_visibie
         data = data[:, :trim_length]  # trim the data to be a multiple of bin_length
         del wf  # delete the waterfall object for data efficiency
         gc.collect()
-        run_loop(data=data, output_array=final_array, number_bins=number_bins, bin_length=bin_length, index=i)
+        run_loop(
+            data=data,
+            output_array=final_array,
+            number_bins=number_bins,
+            bin_length=bin_length,
+            index=i,
+        )
         final_array.flush()
 
     if loading_bar_visibie:
@@ -141,5 +145,5 @@ if __name__ == "__main__":
     ]
 
     data, freq, data_file_name, freq_file_name = data_parsing(
-        path, bin_length=4096, file_name = "raw_data", loading_bar_visibie=True
+        path, bin_length=4096, file_name="raw_data", loading_bar_visibie=True
     )
