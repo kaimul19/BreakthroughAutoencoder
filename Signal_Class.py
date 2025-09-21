@@ -183,6 +183,149 @@ class signal_data:
 
     def _prune_vertical(
         self,
+        min_vertical_size: int = 1,            # vertical radius n: rows strictly above/below to include
+        drift_padding_size: int = 1,            # horizontal radius k: columns left/right to include
+        min_neighbours: int = 1,                # minimum neighbours required to keep a seed
+        pad_mode: str = "constant",             # padding mode for edges when building the integral image
+    ):
+        """
+        Keep seeds that have at least `min_neighbours` neighbours in rows strictly
+        above/below (±min_vertical_size) within ±drift_padding_size columns.
+        The *same row* as the seed is excluded by construction (we sum two rectangles:
+        the one above and the one below the centre row).
+
+        Parameters
+        - min_vertical_size (int): Minimum vertical size of groups to retain.
+        - drift_padding_size (int): Horizontal half-width for neighbour search.
+        - min_neighbours (int): Minimum number of neighbours required to keep a seed.
+        - pad_mode (str): Padding mode for edges, passed to np.pad.
+
+        Returns
+        - pruned_mask (np.ndarray): Boolean mask of seeds that meet neighbour criteria.
+        - keep_mask (np.ndarray): Boolean mask of all pixels that meet neighbour criteria.
+        - neighbour_count (np.ndarray): Integer array of neighbour counts for each pixel.
+        """
+        if not isinstance(min_vertical_size, int):                                 # ensure type is integer
+            raise ValueError("min_vertical_size must be an integer.")              # raise on bad type
+        if not isinstance(drift_padding_size, int):                                # ensure type is integer
+            raise ValueError("drift_padding_size must be an integer.")             # raise on bad type
+        if not isinstance(min_neighbours, int):                                    # ensure type is integer
+            raise ValueError("min_neighbours must be an integer.")                 # raise on bad type
+        if min_vertical_size == 0:                                                 # disallow zero vertical radius
+            raise ValueError(
+                "min_vertical_size must be at least 1."  
+                "If you want to just use horizontal pruning, call " 
+                "prune_methods with gate_requirment_for_false='horizontal'" 
+            )  # guidance
+        if min_neighbours < 1:                                                     # disallow non-positive threshold
+            raise ValueError(
+                "min_neighbours must be at least 1."
+                "If you want to just use horizontal pruning,"
+                "call prune_methods with gate_requirment_for_false='horizontal'")      # guidance
+
+        # NOTE Cruicial for understanding the comments that follow:
+        # n = min_vertical_size, 
+        # k = drift_padding_size, 
+        # R = number_of_rows, 
+        # C = number_of_columns, 
+        # W = window_width = 2k+1
+        # r = row index of a pixel in original image
+        # c = column index of a pixel in original image
+
+        binary_int = self.initial_boolean_mask.astype(np.int32, copy=True)         # convert original seed mask to int for summations, copy to avoid modifying original
+        seed_mask_boolean = self.initial_boolean_mask.astype(bool, copy=False)     # boolean version to gate results back to original seeds
+        window_width = 2 * drift_padding_size + 1                                  # horizontal window width (2k+1)
+
+        # We pad by n rows and k columns so every pixel has a full ABOVE/BELOW window even at edges.             
+        padded = np.pad(                                                           # build padded image around the binary mask
+            binary_int,                                                            # source integer mask (0/1)
+            pad_width = (
+                            (min_vertical_size, min_vertical_size),                               # pad top and bottom by n rows
+                            (drift_padding_size, drift_padding_size)
+                            ),                             # pad left and right by k cols
+            mode=pad_mode,                                                         # padding rule (default constant zeros)
+        )  
+
+        # Build a 2D integral image (summed-area table) with an extra top row/left column of zeros.              
+        # Convention: integral[r, c] = sum of padded[0:r, 0:c], i.e. a half-open box (row r and col c excluded). 
+        integral = np.pad(padded, 
+                        pad_width = ((1, 0), (1, 0)), 
+                        mode="constant",
+                        )               # prepend a zero row and zero column
+        integral = integral.cumsum(axis=0).cumsum(axis=1)                          # cumulative sums down then across (2D prefix sums)
+
+        # ----------------------------- how the rectangle sums map (read-only comments) -----------------------------
+        # For each original pixel (r, c), we want two rectangles (same columns, different rows):                  
+        #   ABOVE: rows [r - n .. r - 1], cols [c - k .. c + k]  
+        #   (seed row excluded)                          
+        #   BELOW: rows [r + 1 .. r + n], cols [c - k .. c + k]  (seed row excluded)                              
+        # After padding by n rows and k columns, (r, c) in the original maps to (r+n, c+k) in the padded image.   
+        # With the extra zero row/col, the sum over inclusive rectangle rows [r0..r1], cols [c0..c1] is:    
+        #   sum = I[r1+1, c1+1] - I[r0, c1+1] - I[r1+1, c0] + I[r0, c0]       (four-corner inclusion–exclusion)  
+        #   (NOTE: The r0/r1/c0/c1 definitions immediately below are for the ABOVE band only;
+        #          see the BELOW band comment for the corresponding definitions used there.)
+        #   For a pixel at (r_pixel, c_pixel) in the ABOVE band:
+        #       r0 = r_pixel - n,  r1 = r_pixel - 1    # inclusive row limits strictly above the seed row
+        #       c0 = c_pixel - k,  c1 = c_pixel + k    # inclusive column limits of the horizontal window
+        #   (c0/c1 are inclusive; r0/r1 are inclusive; the “+1” appears only in the integral-image indices.)
+        #  For the sum above sum = I[A] - I[B] - I[C] + I[D]:
+        #       A = I[r1+1, c1+1]   # bottom-right corner lookup (accumulates up to the rectangle’s bottom/right)
+        #       B = I[r0,   c1+1]   # top-right    corner lookup (removes everything above the rectangle)
+        #       C = I[r1+1, c0   ]  # bottom-left  corner lookup (removes everything left  of the rectangle)
+        #       D = I[r0,   c0   ]  # top-left     corner lookup (adds back the overlap subtracted twice)
+        # We now create four vectorised slices for each band that represent those corner lookups for *all* pixels. 
+
+        # ----------------------------- ABOVE band: rows [r-n .. r-1], cols [c-k .. c+k] -----------------------------
+
+        above_sum = (                                                              # start inclusion–exclusion for ABOVE
+            integral[min_vertical_size : min_vertical_size + self.number_of_rows,  # I[r1+1, ·]: bottom row index for ABOVE → r1 = r-1 ⇒ r1+1 = r
+                    window_width : window_width + self.number_of_columns]         # I[·, c1+1]: right col index for window (c+k)+1 → shift by window_width
+            - integral[0 : self.number_of_rows,                                    # I[r0,   ·]: top row index for ABOVE → r0 = r-n ⇒ in integral coords = r-n
+                    window_width : window_width + self.number_of_columns]       # I[·, c1+1]: same right boundary slice as above
+            - integral[min_vertical_size : min_vertical_size + self.number_of_rows,# I[r1+1, c0]: left col index for window (c-k) → in integral coords = c-k
+                    0 : self.number_of_columns]                                 # I[·,   c0]: left boundary slice aligned to each start column
+            + integral[0 : self.number_of_rows,                                    # I[r0,   c0]: overlap (top-left) added back once
+                    0 : self.number_of_columns]                                 # I[·,   c0]: left boundary slice
+        )  # end ABOVE
+
+        # Explanation of the slices seen above (intuitive view):                                                             
+        # - Rows slice [min_vertical_size : min_vertical_size + R] corresponds to r1+1 for every r (vectorised).        
+        # - Rows slice [0 : R] corresponds to r0 for every r (vectorised).                                              
+        # - Cols slice [window_width : window_width + C] corresponds to c1+1 for every c (vectorised).                  
+        # - Cols slice [0 : C] corresponds to c0 for every c (vectorised).                                              
+
+        
+
+        # ----------------------------- BELOW band: rows [r+1 .. r+n], cols [c-k .. c+k] -----------------------------
+        #   For a pixel at (r_pixel, c_pixel) in the BELOW band:
+        #       r0 = r_pixel + 1,  r1 = r_pixel + n    # inclusive row limits strictly below the seed row
+        #       c0 = c_pixel - k,  c1 = c_pixel + k    # inclusive column limits (same as ABOVE)
+        #   (Use the same inclusion–exclusion: sum = I[r1+1, c1+1] - I[r0, c1+1] - I[r1+1, c0] + I[r0, c0].)
+
+        below_sum = (                                                              # start inclusion–exclusion for BELOW
+            integral[2 * min_vertical_size + 1 : 2 * min_vertical_size + 1 + self.number_of_rows,  # I[r1+1, ·]: for BELOW, r1 = r+n ⇒ r1+1 = r+n+1 ⇒ shift by (2n+1)
+                    window_width : window_width + self.number_of_columns]         # I[·, c1+1]: same right boundary slice
+            - integral[min_vertical_size + 1 : min_vertical_size + 1 + self.number_of_rows,        # I[r0,   ·]: for BELOW, r0 = r+1 ⇒ in integral coords = r+1
+                    window_width : window_width + self.number_of_columns]       # I[·, c1+1]: same right boundary slice
+            - integral[2 * min_vertical_size + 1 : 2 * min_vertical_size + 1 + self.number_of_rows,# I[r1+1, c0]: left boundary slice
+                    0 : self.number_of_columns]                                 # I[·,   c0]: left boundary slice
+            + integral[min_vertical_size + 1 : min_vertical_size + 1 + self.number_of_rows,        # I[r0,   c0]: overlap (top-left) added back once
+                    0 : self.number_of_columns]                                 # I[·,   c0]: left boundary slice
+        )  # end BELOW
+
+        # Explanation of the BELOW slices (intuitive view):                                                              
+        # - Rows slice [n+1 : n+1+R] supplies r0 for BELOW (top of the lower band).                                     
+        # - Rows slice [2n+1 : 2n+1+R] supplies r1+1 for BELOW (bottom of the lower band + 1 for integral coords).      
+        # - Column slices are identical to ABOVE: [0:C] for c0 and [W:W+C] for c1+1, vectorised over all start columns. 
+
+        # ----------------------------- combine, threshold, and gate to seeds -----------------------------
+        neighbour_count = above_sum + below_sum                                     # total neighbours strictly above+below at every pixel
+        keep_mask = neighbour_count >= int(min_neighbours)                          # pixels that meet/beat the neighbour threshold
+        pruned_mask = seed_mask_boolean & keep_mask                                 # keep only original seeds that pass the threshold
+
+        return pruned_mask                                                          # outputs
+
+        
     def grow_seeds(self, growth_threshold: float = 1.0):
         """
         Expand seed groups by including adjacent pixels that meet a lower threshold.
