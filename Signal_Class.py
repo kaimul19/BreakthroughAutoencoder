@@ -2,12 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 import numba 
 
-@numba.jit(nopython=True) # Use Numba to speed up this function define it outside class for performance
-def row_statistics(signal_snippet: np.ndarray, sigma_multiplier: float = 3.0):
-    row_medians = np.nanmedian(signal_snippet, axis=1)                # compute per-row medians
-    row_standard_deviations = np.nanstd(signal_snippet, axis=1)       # compute per-row standard deviations
-    row_thresholds = row_medians + sigma_multiplier * row_standard_deviations  # compute thresholds
-    return row_thresholds, row_medians, row_standard_deviations  # return results
 
 # dont jit this function as it uses non numba functions
 def _consolidate_1d(flattened_array: np.ndarray, maximum_gap: int, unique_id:tuple) -> np.ndarray:
@@ -69,7 +63,10 @@ class signal_data:
         This method calculates the median, standard deviation, and thresholds for each row of the signal_snippet array.
 
         """
-        self.row_thresholds, self.row_medians, self.row_std = row_statistics(self.signal_snippet, self.sigma_multiplier)
+        self.row_medians = np.median(self.signal_snippet, axis=1)                # compute per-row medians
+        self.row_std = np.std(self.signal_snippet, axis=1)       # compute per-row standard deviations
+        self.row_thresholds = self.row_medians + self.sigma_multiplier * self.row_std  # compute thresholds
+
     
     def get_seeds(self):
         """
