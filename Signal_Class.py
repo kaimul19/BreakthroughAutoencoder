@@ -224,7 +224,7 @@ class signal_data:
             final_pruned_mask = horizontal_pruned_mask
             return final_pruned_mask  # return pruned mask immediately, so vertical pruning is skipped
 
-        vertical_pruned_mask, _, _ = self._prune_vertical(  # then vertical pruning
+        vertical_pruned_mask = self._prune_vertical(  # then vertical pruning
             min_vertical_size=min_vertical_size,
             drift_padding_size=drift_padding_size,
             min_neighbours=min_neighbours,
