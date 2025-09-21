@@ -15,7 +15,9 @@ import os
 
 
 # @TimeMeasure
-def generate_injection_list(split: dict, number_slides: int, unequal_split_index: int = 0):
+def generate_injection_list(
+    split: dict, number_slides: int, unequal_split_index: int = 0
+):
     """
     Function to generate a list including the injection type for each data slide
 
@@ -37,8 +39,10 @@ def generate_injection_list(split: dict, number_slides: int, unequal_split_index
     # Check if the number of slides is equal to the sum of the number of each injection
     if np.sum(number_each_injection) != number_slides:
         # If not, add the difference to the first injection
-        number_each_injection[unequal_split_index] += number_slides - np.sum(number_each_injection)
-    
+        number_each_injection[unequal_split_index] += number_slides - np.sum(
+            number_each_injection
+        )
+
     # Generate the injection list
     possible_indexes = np.arange(number_slides)
 
@@ -48,24 +52,29 @@ def generate_injection_list(split: dict, number_slides: int, unequal_split_index
     for i, number in enumerate(number_each_injection):
 
         # Select the indexes for the current injection
-        selected_numbers = np.random.choice(possible_indexes, size=number, replace=False)
+        selected_numbers = np.random.choice(
+            possible_indexes, size=number, replace=False
+        )
 
         # Add the selected indexes to the output dictionary
-        output_dictionary[keys[i]] = selected_numbers 
+        output_dictionary[keys[i]] = selected_numbers
 
         # Remove the selected indexes from the possible indexes
         possible_indexes = np.setdiff1d(possible_indexes, selected_numbers)
 
     return output_dictionary
 
+
 @TimeMeasure
-def inject_signals(data: np.ndarray, 
-                   signal_only:np.ndarray,
-                   signal_split: dict, 
-                   true_false_split: dict,
-                   signal_params: np.ndarray, 
-                   loading_bar_bool: bool = True,
-                   num_workers: int = 20):
+def inject_signals(
+    data: np.ndarray,
+    signal_only: np.ndarray,
+    signal_split: dict,
+    true_false_split: dict,
+    signal_params: np.ndarray,
+    loading_bar_bool: bool = True,
+    num_workers: int = 20,
+):
     """
     Function to inject signals into the data.
     Parameters:
@@ -94,23 +103,34 @@ def inject_signals(data: np.ndarray,
 
     if len(all_indices) != len(unique_indices):
         from collections import Counter
+
         dupes = [item for item, count in Counter(all_indices).items() if count > 1]
-        raise ValueError(f"❌ Duplicate indices found across injection types: {dupes[:10]}... (total {len(dupes)})")
+        raise ValueError(
+            f"❌ Duplicate indices found across injection types: {dupes[:10]}... (total {len(dupes)})"
+        )
     else:
         print("✅ No duplicated indices across injection types.")
 
-
     true_false_dictionary = {}
     metadata = []
-
 
     # Loop through the injections
     for key in keys:
         indexes = signal_index_dictionary[key]
 
         # add the injection type to the data
-        data[indexes, :, :, :], dict_to_append, signal_only[indexes, :, :, :] = add_injection_type(data[indexes, :, :, :], signal_only[indexes, :, :, :], signal_params, injection_type = key, true_false_split = true_false_split, loading_bar_bool = loading_bar_bool, num_workers = num_workers)
-        
+        data[indexes, :, :, :], dict_to_append, signal_only[indexes, :, :, :] = (
+            add_injection_type(
+                data[indexes, :, :, :],
+                signal_only[indexes, :, :, :],
+                signal_params,
+                injection_type=key,
+                true_false_split=true_false_split,
+                loading_bar_bool=loading_bar_bool,
+                num_workers=num_workers,
+            )
+        )
+
         # Update the true_false_dictionary with the new injections
         true_false_dictionary = update_dictionary(true_false_dictionary, dict_to_append)
 
@@ -119,13 +139,14 @@ def inject_signals(data: np.ndarray,
             true_false_dictionary=dict_to_append,
             injection_type=key,
             total_cadences=len(indexes),
-            indexes_used=indexes
+            indexes_used=indexes,
         )
 
     data = threshold_and_normalise_data(data, 2)
     signal_only = threshold_and_normalise_data(signal_only, 2)
 
     return data, signal_only, metadata
+
 
 # @TimeMeasure
 def update_dictionary(dictionary_to_update, dict_to_append):
@@ -142,23 +163,24 @@ def update_dictionary(dictionary_to_update, dict_to_append):
     """
     for key, value in dict_to_append.items():
         # -------- ensure we always work with Python lists ----------
-        if isinstance(value, np.ndarray):            # convert incoming ndarray → list
+        if isinstance(value, np.ndarray):  # convert incoming ndarray → list
             value = value.tolist()
         # -----------------------------------------------------------
         if key in dictionary_to_update:
-            if isinstance(dictionary_to_update[key], np.ndarray):   # convert stored ndarray → list
+            if isinstance(
+                dictionary_to_update[key], np.ndarray
+            ):  # convert stored ndarray → list
                 dictionary_to_update[key] = dictionary_to_update[key].tolist()
             dictionary_to_update[key].extend(value)
         else:
-            dictionary_to_update[key] = value                          # already a list
+            dictionary_to_update[key] = value  # already a list
     return dictionary_to_update
+
 
 # @njit(parallel=True)
 @TimeMeasure
 # @njit(parallel=True)
 # @njit(parallel=True)   # ← re-enable once you’re happy
-
-
 
 
 # def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
@@ -214,8 +236,10 @@ def update_dictionary(dictionary_to_update, dict_to_append):
 #     return normalized.astype(np.float32)
 #     """
 
-def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
-                                 ) -> np.ndarray:
+
+def threshold_and_normalise_data(
+    data: np.ndarray, threshold_sigma: float = 5.0
+) -> np.ndarray:
     """
     Per-frame normalization: for each (16 × 4096) frame, divide by that
     frame's own maximum value.
@@ -244,13 +268,17 @@ def threshold_and_normalise_data(data: np.ndarray, threshold_sigma: float = 5.0
     return out
 
 
-
-
-
-
-
 # @TimeMeasure
-def add_injection_type(data: np.ndarray, signal_only: np.ndarray, signal_params: np.ndarray, injection_type: str, true_false_split: dict, loading_bar_bool: bool = True, num_workers: int = 20, bin_width = 4096):
+def add_injection_type(
+    data: np.ndarray,
+    signal_only: np.ndarray,
+    signal_params: np.ndarray,
+    injection_type: str,
+    true_false_split: dict,
+    loading_bar_bool: bool = True,
+    num_workers: int = 20,
+    bin_width=4096,
+):
     """
     Add a specific injection type to the data.
 
@@ -272,37 +300,72 @@ def add_injection_type(data: np.ndarray, signal_only: np.ndarray, signal_params:
         return data, true_false_index_dictionary, signal_only  # No injection needed
 
     # Generate true/false index dictionary
-    true_false_index_dictionary = generate_injection_list(true_false_split, data.shape[0], unequal_split_index=1)
+    true_false_index_dictionary = generate_injection_list(
+        true_false_split, data.shape[0], unequal_split_index=1
+    )
 
     # Generate frames for each cadence
-    cadences = generate_frames(data, repeat(true_false_index_dictionary), max_workers=num_workers)
+    cadences = generate_frames(
+        data, repeat(true_false_index_dictionary), max_workers=num_workers
+    )
 
     # Go through and add the signals to the cadences
 
     # Add the linear lines
     if injection_type == "Linear":
-        add_signal_with_threads(cadences, signal_only, injection_type, add_linear, true_false_index_dictionary, signal_params, bin_width=bin_width)
+        add_signal_with_threads(
+            cadences,
+            signal_only,
+            injection_type,
+            add_linear,
+            true_false_index_dictionary,
+            signal_params,
+            bin_width=bin_width,
+        )
 
     elif injection_type == "Sinusoid":
-        add_signal_with_threads(cadences, signal_only, injection_type, add_sinusoid, true_false_index_dictionary, signal_params, bin_width=bin_width)
+        add_signal_with_threads(
+            cadences,
+            signal_only,
+            injection_type,
+            add_sinusoid,
+            true_false_index_dictionary,
+            signal_params,
+            bin_width=bin_width,
+        )
 
     elif injection_type == "Welsh_dragon":
-        add_signal_with_threads(cadences, signal_only, injection_type, add_welsh_dragon, true_false_index_dictionary, signal_params, bin_width=bin_width)
+        add_signal_with_threads(
+            cadences,
+            signal_only,
+            injection_type,
+            add_welsh_dragon,
+            true_false_index_dictionary,
+            signal_params,
+            bin_width=bin_width,
+        )
         # for i in range(12):
         #     plt.imshow(cadences[i][0].get_data(), aspect='auto')
         #     plt.savefig(f"test{i}.png")
-    
+
     data = return_to_data(cadences)
     return data, true_false_index_dictionary, signal_only
 
 
-def add_signal_with_threads(cadences, signal_only, class_of_injection,
-                            injection_function, true_false_index_dictionary,
-                            signal_params, bin_width=4096):
+def add_signal_with_threads(
+    cadences,
+    signal_only,
+    class_of_injection,
+    injection_function,
+    true_false_index_dictionary,
+    signal_params,
+    bin_width=4096,
+):
     """
     Run the injection_function on the specified cadences in parallel and
     update BOTH 'cadences' and the matching rows of 'signal_only'.
     """
+
     def _run(indices, tf_flag, desc):
         # indices may be a numpy array; handle empty safely
         if indices is None:
@@ -320,23 +383,25 @@ def add_signal_with_threads(cadences, signal_only, class_of_injection,
             return injection_function(cad_i, sig_i, signal_params, tf_flag, bin_width)
 
         with ThreadPoolExecutor() as ex:
-            results = list(
-                tqdm(ex.map(_apply, pairs), total=len(idx), desc=desc)
-            )
+            results = list(tqdm(ex.map(_apply, pairs), total=len(idx), desc=desc))
 
         # Unpack and write back to the same rows
-        cad_out = [r[0] for r in results]              # list of stg.OrderedCadence
-        sig_out = np.stack([r[1] for r in results], 0) # (len(idx), 6, 16, 4096)
+        cad_out = [r[0] for r in results]  # list of stg.OrderedCadence
+        sig_out = np.stack([r[1] for r in results], 0)  # (len(idx), 6, 16, 4096)
 
-        cadences[idx]    = np.array(cad_out, dtype=object)
+        cadences[idx] = np.array(cad_out, dtype=object)
         signal_only[idx] = sig_out
 
-
-    _run(true_false_index_dictionary.get("True", []),  True,
-         f"Injecting {class_of_injection} (True)")
-    _run(true_false_index_dictionary.get("False", []), False,
-         f"Injecting {class_of_injection} (False)")
-
+    _run(
+        true_false_index_dictionary.get("True", []),
+        True,
+        f"Injecting {class_of_injection} (True)",
+    )
+    _run(
+        true_false_index_dictionary.get("False", []),
+        False,
+        f"Injecting {class_of_injection} (False)",
+    )
 
 
 # @TimeMeasure
@@ -350,6 +415,7 @@ def return_to_data(cadences):
     Returns:
     - A NumPy array with the original shape of the data.
     """
+
     # Define a helper function to extract data from a single cadence
     def extract_cadence_data(cadence):
         return np.array([frame.get_data() for frame in cadence])
@@ -366,15 +432,6 @@ def return_to_data(cadences):
     # Stack the list of NumPy arrays into a single array
     data_array = np.stack(data_list, axis=0)
     return data_array
-
-
-
-
-
-
-
-
-
 
 
 # @TimeMeasure
@@ -402,6 +459,7 @@ def generate_frames(data, true_false_index_dictionary, max_workers=20):
 
     return np.array(cadences)
 
+
 # @TimeMeasure
 def process_into_cadence(data_slice, true_false_index_dictionary):
     """
@@ -415,13 +473,17 @@ def process_into_cadence(data_slice, true_false_index_dictionary):
     - OrderedCadence object.
     """
     # Determine the order based on whether the cadence index is in True or False
-    cadence_index = np.where(data_slice == data_slice)[0][0]  # Assuming slice index maps to global index
+    cadence_index = np.where(data_slice == data_slice)[0][
+        0
+    ]  # Assuming slice index maps to global index
     if cadence_index in true_false_index_dictionary["True"]:
         order = "ABACAD"
     elif cadence_index in true_false_index_dictionary["False"]:
         order = "AAAAAA"
     else:
-        raise ValueError(f"Cadence index {cadence_index} not found in True/False index dictionary.")
+        raise ValueError(
+            f"Cadence index {cadence_index} not found in True/False index dictionary."
+        )
 
     # Create the frames
     frame_array = np.empty(data_slice.shape[0], dtype=stg.Frame)
@@ -431,7 +493,7 @@ def process_into_cadence(data_slice, true_false_index_dictionary):
             dt=18.25361108 * u.s,
             fch1=0 * u.MHz,
             ascending=True,
-            data=data_slice[j]
+            data=data_slice[j],
         )
         frame_array[j] = frame
 
@@ -439,24 +501,22 @@ def process_into_cadence(data_slice, true_false_index_dictionary):
     return stg.OrderedCadence(frame_array, order=order)
 
 
-
 def create_signal_only_file(signals_only_path, data_shape):
 
     os.makedirs(os.path.dirname(signals_only_path), exist_ok=True)
 
     signals_only = np.memmap(
-        signals_only_path,
-        dtype='float32',
-        mode='w+',
-        shape=data_shape
+        signals_only_path, dtype="float32", mode="w+", shape=data_shape
     )
     # ---- Zero-initialize signals_only in chunks (≤ ~20 GB resident) ----
-    dtype = np.dtype('float32')
-    bytes_per_item = dtype.itemsize                       # 4
-    items_per_sample = int(np.prod(data_shape[1:], dtype=np.int64))  # 6*16*4096 = 393,216
+    dtype = np.dtype("float32")
+    bytes_per_item = dtype.itemsize  # 4
+    items_per_sample = int(
+        np.prod(data_shape[1:], dtype=np.int64)
+    )  # 6*16*4096 = 393,216
     bytes_per_sample = items_per_sample * bytes_per_item  # ~1.5 MB per sample
 
-    MAX_BYTES = 5 * 1024**3                              # 30 GiB ceiling
+    MAX_BYTES = 5 * 1024**3  # 30 GiB ceiling
     chunk_N = max(1, int(MAX_BYTES // bytes_per_sample))  # samples per chunk
 
     # (Optional) be a bit conservative if you want headroom:
@@ -464,11 +524,22 @@ def create_signal_only_file(signals_only_path, data_shape):
     print("Creating and zeroing Signal Memmap")
     for start in tqdm(range(0, data_shape[0], chunk_N)):
         end = min(start + chunk_N, data_shape[0])
-        signals_only[start:end] = 0.0   # scalar broadcast: no large temp allocation
-        signals_only.flush()            # ensure written to disk per chunk
+        signals_only[start:end] = 0.0  # scalar broadcast: no large temp allocation
+        signals_only.flush()  # ensure written to disk per chunk
     return signals_only
 
-def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params, data_shape, num_workers=20, chunk_size=10000, return_data=True, start_index=0):
+
+def chunk_and_inject(
+    memmap_file,
+    signal_split,
+    true_false_split,
+    signal_params,
+    data_shape,
+    num_workers=20,
+    chunk_size=10000,
+    return_data=True,
+    start_index=0,
+):
     """
     Process a memory-mapped file in chunks, inject signals into the data, and write the processed chunks back to the file.
 
@@ -502,7 +573,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     # Ensure destination directory exists
     os.makedirs(os.path.dirname(processed_path), exist_ok=True)
 
-    with open(memmap_file, 'rb') as fsrc, open(processed_path, 'wb') as fdst:
+    with open(memmap_file, "rb") as fsrc, open(processed_path, "wb") as fdst:
         while True:
             buf = fsrc.read(copy_chunk_size)
             if not buf:
@@ -514,32 +585,46 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     print(f"Copy completed.")
 
     # Open the memmap file in read-write mode
-    data = np.memmap(processed_path, dtype='float32', mode='r+', shape=data_shape)
+    data = np.memmap(processed_path, dtype="float32", mode="r+", shape=data_shape)
 
-    signal_only_path = processed_path.replace('.npy', '_signals_only.npy')
+    signal_only_path = processed_path.replace(".npy", "_signals_only.npy")
 
     signals_only = create_signal_only_file(signal_only_path, data_shape)
 
-
     print("zeroeing complete now chunking")
     # Adjust the data slice and shape for the start_index
-    total_samples = data_shape[0] - start_index  # Total remaining samples from the start_index
-    num_chunks = (total_samples + chunk_size - 1) // chunk_size  # Ceil division for the adjusted range
+    total_samples = (
+        data_shape[0] - start_index
+    )  # Total remaining samples from the start_index
+    num_chunks = (
+        total_samples + chunk_size - 1
+    ) // chunk_size  # Ceil division for the adjusted range
     all_metadata = []  # List to store metadata for all chunks
     count = 0
     for chunk_idx in range(num_chunks):
         # Determine the start and end indices for this chunk
         start_idx = start_index + chunk_idx * chunk_size
-        end_idx = min(start_idx + chunk_size, data_shape[0])  # Ensure we don't go beyond the end
+        end_idx = min(
+            start_idx + chunk_size, data_shape[0]
+        )  # Ensure we don't go beyond the end
 
-        print(f"Processing chunk {chunk_idx + 1}/{num_chunks}: indices {start_idx} to {end_idx}")
+        print(
+            f"Processing chunk {chunk_idx + 1}/{num_chunks}: indices {start_idx} to {end_idx}"
+        )
 
         # Slice the data for this chunk
         chunk_data = data[start_idx:end_idx]
         chunk_signals = signals_only[start_idx:end_idx]
 
         # Process the chunk with inject_signals
-        processed_chunk, processed_signals_chunk, chunk_metadata = inject_signals(chunk_data, chunk_signals, signal_split, true_false_split, signal_params, num_workers=num_workers)
+        processed_chunk, processed_signals_chunk, chunk_metadata = inject_signals(
+            chunk_data,
+            chunk_signals,
+            signal_split,
+            true_false_split,
+            signal_params,
+            num_workers=num_workers,
+        )
         chunk_metadata.sort(key=lambda t: int(t[0]))
         chunk_metadata = [(info, flags) for (_, info, flags) in chunk_metadata]
         # print(f"{chunk_metadata=}")
@@ -556,9 +641,7 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
 
         print(f"Chunk {chunk_idx + 1} flushed to disk.")
 
-        count +=1
-
-            
+        count += 1
 
     # Convert to NumPy array
     metadata_array = np.array(all_metadata, dtype=object)
@@ -569,19 +652,19 @@ def chunk_and_inject(memmap_file, signal_split, true_false_split, signal_params,
     metadata_path = os.path.join(os.path.dirname(processed_path), metadata_filename)
     np.save(metadata_path, metadata_array)
 
-    shape_save_loc = processed_path.replace('.npy', '_shape.npy')
+    shape_save_loc = processed_path.replace(".npy", "_shape.npy")
     np.save(shape_save_loc, data_shape)
-
 
     if return_data:
         return data, signals_only, metadata_array
 
 
-
-def build_injection_metadata(true_false_dictionary: dict, 
-                             injection_type: str, 
-                             total_cadences: int, 
-                             indexes_used: np.ndarray) -> list:
+def build_injection_metadata(
+    true_false_dictionary: dict,
+    injection_type: str,
+    total_cadences: int,
+    indexes_used: np.ndarray,
+) -> list:
     """
     Build metadata for the injection based on the true/false dictionary and injection type.
     Parameters:
@@ -597,7 +680,9 @@ def build_injection_metadata(true_false_dictionary: dict,
     # print(f"{total_cadences=}, {injection_type=}, {indexes_used=}")
     if injection_type == "Background":
         for i in range(total_cadences):
-            metadata.append((indexes_used[i], ("Background", False), ["Background"] * 6))
+            metadata.append(
+                (indexes_used[i], ("Background", False), ["Background"] * 6)
+            )
         return metadata
 
     true_indices = true_false_dictionary.get("True", [])
@@ -606,20 +691,30 @@ def build_injection_metadata(true_false_dictionary: dict,
     for i in range(total_cadences):
         abs_index = indexes_used[i]
         if i in true_indices:
-            metadata.append((abs_index, (injection_type, True), [injection_type if j % 2 == 0 else "Background" for j in range(6)]))
+            metadata.append(
+                (
+                    abs_index,
+                    (injection_type, True),
+                    [injection_type if j % 2 == 0 else "Background" for j in range(6)],
+                )
+            )
         elif i in false_indices:
             metadata.append((abs_index, (injection_type, False), [injection_type] * 6))
         else:
-            raise ValueError(f"Index {i} not found in either true or false injection dictionary.")
+            raise ValueError(
+                f"Index {i} not found in either true or false injection dictionary."
+            )
     return metadata
 
 
-
-
-            
 if __name__ == "__main__":
     # signal_split = {"Background": 0.125, "Linear": 0.4435, "Sinusoid": 0.4435, "Welsh_dragon": 0.005}
-    signal_split = {"Background": 0.12, "Linear": 0.8, "Sinusoid": 0.04, "Welsh_dragon": 0.04}
+    signal_split = {
+        "Background": 0.12,
+        "Linear": 0.8,
+        "Sinusoid": 0.04,
+        "Welsh_dragon": 0.04,
+    }
     # signal_split = {"Background": 0.2, "Linear": 0.4, "Sinusoid": 0.38, "Welsh_dragon": 0.02}
     # signal_split = {"Background": 0.2, "Linear": 0.8}
     # signal_split = {"Welsh_dragon": 1}
@@ -633,14 +728,14 @@ if __name__ == "__main__":
     # output_dictionary2 = generate_injection_list(true_false_split, number_slides)
     # mask = generate_injection_list(true_false_split, number_slides)
 
+    import os
 
-    import os 
-    file_name = 'generated_data/background_seperated_raw_data_100k.npy'
-    data_shape_name = file_name.replace('.npy', '_shape.npy')
+    file_name = "generated_data/background_seperated_raw_data_100k.npy"
+    data_shape_name = file_name.replace(".npy", "_shape.npy")
     data_shape = np.load(data_shape_name)
     data_shape = tuple(int(dim) for dim in data_shape)
 
-    data = np.memmap(file_name, dtype='float32', mode='r+', shape=data_shape)
+    data = np.memmap(file_name, dtype="float32", mode="r+", shape=data_shape)
     # for i in range(0,40, 5):
 
     #     plt.imshow(data[i, 0, :, :], aspect='auto')
@@ -648,7 +743,16 @@ if __name__ == "__main__":
     #     plt.savefig(f"test{i}.png")
     # data2 = inject_signals(data[10000:12000], signal_split, true_false_split, np.array([1000, 0, 10000.0]), num_workers=20)
     print(f"Data shape: {data.shape}")
-    full_data, injections_only, meta_data = chunk_and_inject(file_name, signal_split, true_false_split, np.array([10, 0, 10.0]), data_shape, num_workers=20, chunk_size=10000, start_index = 0)
+    full_data, injections_only, meta_data = chunk_and_inject(
+        file_name,
+        signal_split,
+        true_false_split,
+        np.array([10, 0, 10.0]),
+        data_shape,
+        num_workers=20,
+        chunk_size=10000,
+        start_index=0,
+    )
 
     for i in tqdm(range(0, 40, 1)):
         injection_type, frame_flags = meta_data[i]
@@ -656,17 +760,19 @@ if __name__ == "__main__":
         fig, axs = plt.subplots(6, 2, figsize=(8, 10), constrained_layout=True)
 
         for j in range(6):
-            im0 = axs[j, 0].imshow(full_data[i, j, :, :], aspect='auto', cmap='viridis')
+            im0 = axs[j, 0].imshow(full_data[i, j, :, :], aspect="auto", cmap="viridis")
             axs[j, 0].set_ylabel(f"Cadence {j}", fontsize=8)
             fig.colorbar(im0, ax=axs[j, 0], fraction=0.046, pad=0.02)
 
-            im1 = axs[j, 1].imshow(injections_only[i, j, :, :], aspect='auto', cmap='viridis')
+            im1 = axs[j, 1].imshow(
+                injections_only[i, j, :, :], aspect="auto", cmap="viridis"
+            )
             fig.colorbar(im1, ax=axs[j, 1], fraction=0.046, pad=0.02)
 
         title_text = f"Index {i} — Flavour: {injection_type[0]}, Signal Type: {injection_type[1]}, Frame flags: {frame_flags}"
         fig.suptitle(title_text, fontsize=10)
 
-        plt.savefig(f"Output_plots/final_test{i}.png")  # optionally add bbox_inches='tight'
+        plt.savefig(
+            f"Output_plots/final_test{i}.png"
+        )  # optionally add bbox_inches='tight'
         plt.close()
-
-    
