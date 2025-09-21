@@ -122,14 +122,14 @@ class signal_data:
         if self.consolidated_group_boolean_mask is not None:
             raise ValueError("Consolidated group boolean mask already exists. You should not call this method twice.")
         
-        seperation = maximum_gap + 1  # define seperation with additional index so that runs on edges are not merged
+        seperation = max_pixel_distance_either_side + 1  # define seperation with additional index so that runs on edges are not merged
         work = np.zeros((self.number_of_rows, 
                             self.number_of_columns + seperation), dtype=bool) # padded work array to avoid wrap-around
-        work[:, :cols] = self.signal_snippet.astype(bool, copy=True) # populate work array
+        work[:, :self.number_of_columns] = self.initial_boolean_mask.astype(bool, copy=True) # populate work array
         flat = work.ravel()                                      # flatten for processing
-        cons_flat = _consolidate_1d(flat, maximum_gap)            # call merging method
+        cons_flat = _consolidate_1d(flat, max_pixel_distance_either_side, unique_id = self.unique_id)     # call merging method
         self.consolidated_group_boolean_mask = cons_flat.reshape(self.number_of_rows, 
-                                                    self.number_of_columns + seperation)[:, :cols] # reshape back and trim padding
+                                                    self.number_of_columns + seperation)[:, :self.number_of_columns] # reshape back and trim padding
 
 
     
