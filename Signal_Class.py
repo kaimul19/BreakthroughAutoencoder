@@ -49,11 +49,9 @@ class signal_data:
         self.row_medians = None                                               # placeholder for per-row medians
         self.row_std = None                                                   # placeholder for per-row stds
         self.row_thresholds = None                                            # placeholder for per-row thresholds
-        self.initial_boolean_mask = np.empty(self.signal_snippet.shape, 
-                                        dtype=bool)                           # placeholder for raw seed mask
-        self.consolidated_group_boolean_mask = np.empty(self.signal_snippet.shape, 
-                                        dtype=bool)                           # placeholder for consolidated mask
         self.sigma_multiplier = float(sigma_multiplier)                       # store sigma multiplier
+        self.initial_boolean_mask = None                                       # placeholder for initial boolean mask of seeds
+        self.consolidated_group_boolean_mask = None                            # placeholder for consolidated boolean mask of seed groups
     def _return_shape(self):
         """
         Return the shape of the signal snippet.
