@@ -6,7 +6,7 @@ from Decorators import TimeMeasure
 
 # for welsh dragon
 import random
-from WelshFlagGeneration import generate_welsh_flag_array  # ← your original function
+from Welsh_Flag_Generation import generate_welsh_flag_array  # ← your original function
 
 
 @njit(cache=True)
