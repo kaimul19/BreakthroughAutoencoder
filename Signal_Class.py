@@ -35,7 +35,7 @@ def _consolidate_1d(flattened_array: np.ndarray, maximum_gap: int, unique_id:tup
 
 
 class signal_data:
-    def __init__(self, signal_snippet: np.ndarray, sigma_multiplier: float = 3.0):
+    def __init__(self, signal_snippet: np.ndarray, unique_id: np.ndarray, sigma_multiplier: float = 3.0):
         """
         Container for 2D signal snippets with row-based statistics and seed operations.
         """
@@ -45,11 +45,14 @@ class signal_data:
         if self.signal_snippet.shape[0] != 16:
             print("Warning: Expected 16 rows in the snippet array") 
             print("These corresponding to the 16 time bins of an observation")  # warn if unexpected shape
+        if unique_id is None or not isinstance(unique_id, np.ndarray) or len(unique_id) != 2:
+            raise ValueError(f"unique_id must be an np.2darray of [observation_index, snippet_index] instead got {unique_id}, type {type(unique_id)}")
         self.number_of_rows, self.number_of_columns = self.signal_snippet.shape     # cache shape information
         self.row_medians = None                                               # placeholder for per-row medians
         self.row_std = None                                                   # placeholder for per-row stds
         self.row_thresholds = None                                            # placeholder for per-row thresholds
         self.sigma_multiplier = float(sigma_multiplier)                       # store sigma multiplier
+        self.unique_id = unique_id                                           # store unique identifier for debugging
         self.initial_boolean_mask = None                                       # placeholder for initial boolean mask of seeds
         self.consolidated_group_boolean_mask = None                            # placeholder for consolidated boolean mask of seed groups
     def _return_shape(self):
