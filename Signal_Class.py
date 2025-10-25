@@ -531,6 +531,133 @@ class signal_data:
 
         return pruned_mask 
 
+    def grow_seeds(self, growth_threshold_above_median: float = 1.0):
+        """
+        Grow seeds horizontally out to the full contiguous above-threshold region.
+
+        For each row:
+            - Define eligible pixels as those where
+                signal[row, col] > (row_medians[row] + growth_threshold_above_median)
+            - Break eligible into contiguous horizontal runs.
+            - Keep (fill) an entire run if that run contains at least one seed pixel
+            from the chosen base mask (consolidated > final_pruned > initial).
+            - Drop runs that contain no seeds.
+
+        This is done in one vectorized pass using 1D flattening with row padding to
+        avoid wraparound between rows.
+
+        Result is stored in self.grown_seed_mask and also returned.
+        """
+
+        seed_mask_type = "consolidated"
+        if self.consolidated_group_boolean_mask is None:
+            print("Warning: Consolidated group boolean mask has not been computed yet.")
+            print("Will first attempt to consolidate seeds using final pruned mask.")
+            seed_mask_type = "final_pruned"
+            if self.final_pruned_mask is None:
+                print("Warning: Final pruned mask has not been computed yet. So will use initial boolean mask instead.")
+
+                seed_mask_type = "initial"
+                if self.initial_boolean_mask is None:
+                    raise ValueError(
+                        "Initial boolean mask must be computed before growing seeds. You must have at least one seed to grow from."
+                    )
+        if seed_mask_type == "consolidated":
+            seed_mask = self.consolidated_group_boolean_mask.copy()
+        elif seed_mask_type == "final_pruned":
+            seed_mask = self.final_pruned_mask.copy()
+        elif seed_mask_type == "initial":  # initial
+            seed_mask = self.initial_boolean_mask.copy()
+        else:
+            raise ValueError(f"Unknown seed mask type: {seed_mask_type}")
+
+        
+        # ---------- build the eligibility mask based on intensity threshold ----------
+        # per-row threshold: median[row] + growth_threshold_above_median
+        # shape (rows, 1) so it broadcasts across columns
+        growth_thresholds = self.row_medians[:, None] + growth_threshold_above_median
+        eligible_mask = self.signal_snippet > growth_thresholds  # shape (Rows, Columns), bool
+
+        # We only care about eligible pixels; we'll later keep only the eligible runs
+        # that intersect at least one True in seed_mask.
+
+        # ---------- pad each row with one False column to break adjacency between rows ----------
+        # so runs never connect across row boundaries when flattened.
+
+        padded_len = self.number_of_columns + 1 # single-column separator of zeros between rows in the flattened view
+
+        # allocate padded arrays
+        padded_eligible = np.zeros((self.number_of_rows, padded_len), dtype=np.bool_)
+        padded_seeds    = np.zeros((self.number_of_rows, padded_len), dtype=np.bool_)
+
+        padded_eligible[:, :self.number_of_columns] = eligible_mask
+        padded_seeds[:,    :self.number_of_columns] = seed_mask
+
+        # flatten
+        flat_eligible = padded_eligible.ravel()  # 1D bool
+        flat_seeds    = padded_seeds.ravel()     # 1D bool
+
+        # ---------- find contiguous runs of eligible==True in the flattened array ----------
+        # Similar method as that in _consolidate_flattened_rows.
+        # diff on flat_eligible to get run starts (+1) and run ends (-1).
+        diff = np.diff(flat_eligible.astype(np.uint8), prepend=0, append=0)
+        run_starts = np.flatnonzero(diff == 1)  # these have value +1
+        run_ends   = np.flatnonzero(diff == -1) - 1  # these have value -1; inclusive ends
+
+        # If there are no eligible runs, growth mask is just the original seed mask.
+        if run_starts.size == 0:
+            print("Warning: No eligible runs found for seed growth; returning original seed mask.")
+            grown_mask = seed_mask.copy()
+            self.grown_seed_mask = grown_mask
+            return grown_mask
+
+        # ---------- for each run, decide if it contains at least one seed ----------
+        # We'll use a prefix sum over flat_seeds to query "any seeds in [start:end]"
+        prefix_seeds = np.cumsum(flat_seeds.astype(np.int32))
+
+        # For a run [a, b] inclusive, number of seeds in it is:
+        #   prefix_seeds[b] - prefix_seeds[a-1]  (careful at a==0) as it is the number of seeds up to b minus those up to a-1
+        # We'll vectorize that:
+        left_vals = np.zeros_like(run_starts, dtype=np.int32)
+        left_vals[run_starts > 0] = prefix_seeds[run_starts[run_starts > 0] - 1] 
+
+        seeds_in_run = (prefix_seeds[run_ends] - left_vals) > 0  # bool per run > 0 
+        # above is the calculation of seeds in each run prefix_seeds[run_ends] is the number of seeds up to the end of each run
+        # left_vals is the number of seeds up to the start of each run -1 (or 0 if start is 0)
+
+        # ---------- now build a new flat mask that keeps only runs that had seeds ----------
+        flat_grown = np.zeros_like(flat_eligible, dtype=np.bool_)
+
+        # We'll "paint" in only the runs that contain at least one seed.
+        # We can do this with a difference buffer like in consolidation.
+        diffbuf = np.zeros(flat_eligible.size + 1, dtype=np.int32)
+
+        # Add +1 at run_starts and -1 at run_ends+1 (+1 here for inclusive ends) BUT ONLY for runs with seeds.
+        valid_starts = run_starts[seeds_in_run]
+        valid_ends   = run_ends[seeds_in_run]
+
+        np.add.at(diffbuf, valid_starts, 1)
+        np.add.at(diffbuf, valid_ends + 1, -1)
+
+        # prefix sum to fill in the kept runs
+        flat_grown = (np.cumsum(diffbuf[:-1]) > 0)
+
+        # ---------- reshape back to (self.number_of_rows, padded_len), then crop off the separator col ----------
+        grown_padded = flat_grown.reshape(self.number_of_rows, padded_len)
+        grown_mask = grown_padded[:, :self.number_of_columns]
+
+        # ---------- store and return ----------
+        grown_mask |= seed_mask  # ensure original seeds are kept
+        self.grown_seed_mask = grown_mask
+        return grown_mask
+
+
+        
+
+
+
+
+
     def plot_1D(
         self,
         nothing_initial_or_consolidated: str = "initial",
