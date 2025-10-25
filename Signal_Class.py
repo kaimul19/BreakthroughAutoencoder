@@ -48,8 +48,8 @@ def scan_horizontal_surroundings(
     # make a verified_array where it is starting as a False array
     for i in prange(len(true_indicies)):
         row, col = true_indicies[i]
-        left_column_index = max(0, col - max_pixel_distance_either_side)  # ensure not negative 
-        right_column_index = min(pruned_2d.shape[1]-1, col + max_pixel_distance_either_side)  # ensure not out of bounds
+        left_column_index = max(0, col - max_horizontal_gap)  # ensure not negative 
+        right_column_index = min(pruned_2d.shape[1]-1, col + max_horizontal_gap)  # ensure not out of bounds
 
         sum_region = pruned_2d[row, left_column_index:right_column_index+1].sum()  # sum in the region
         if sum_region < min_neighbours + 1:  # +1 to account for the seed itself
