@@ -529,12 +529,7 @@ class signal_data:
             seed_mask_boolean & keep_mask
         )  # keep only original seeds that pass the threshold
 
-        return pruned_mask  # outputs
-
-    def grow_seeds(self, growth_threshold: float = 1.0):
-        """
-        Expand seed groups by including adjacent pixels that meet a lower threshold.
-        """
+        return pruned_mask 
 
     def plot_1D(
         self,
