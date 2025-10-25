@@ -38,6 +38,25 @@ def _consolidate_1d(
     return np.cumsum(difference_buffer[:-1]) > 0  # return consolidated boolean mask
 
 
+@njit(parallel=True)
+def scan_horizontal_surroundings(
+    pruned_2d: np.ndarray,
+    true_indicies: np.ndarray,
+    max_horizontal_gap: int,
+) -> np.ndarray:
+
+    # make a verified_array where it is starting as a False array
+    for i in prange(len(true_indicies)):
+        row, col = true_indicies[i]
+        left_column_index = max(0, col - max_pixel_distance_either_side)  # ensure not negative 
+        right_column_index = min(pruned_2d.shape[1]-1, col + max_pixel_distance_either_side)  # ensure not out of bounds
+
+        sum_region = pruned_2d[row, left_column_index:right_column_index+1].sum()  # sum in the region
+        if sum_region < min_neighbours + 1:  # +1 to account for the seed itself
+            pruned_2d[row, col] = 0  # prune the seed if not enough neighbours
+    return pruned_2d
+
+
 class signal_data:
     def __init__(
         self,
@@ -244,10 +263,35 @@ class signal_data:
 
         return final_pruned_mask
 
-    def _prune_horizontal(self, min_horizontal_size: int = 3):
+    def _prune_horizontal(self, max_horizontal_gap: int = 3, min_neighbours: int = 1):
         """
         Prune groups that do not meet horizontal size criteria.
+
+        Parameters:
+        - max_horizontal_gap (int): Maximum allowed gap of non-seed pixels within a group. 
+                                        if checking e.g. the 5th index in a row, then pixels 2,3,4 and 6,7,8 are included in the check.
+        - min_neighbours (int): Minimum neighbours required in that range to keep a seed.
+
+        Returns:
+        - pruned_mask (np.ndarray): Boolean mask of seeds that meet horizontal size criteria.
         """
+        true_indicies = np.argwhere(self.initial_boolean_mask)  # get indices of true seeds 
+
+        #initial_boolean_mask is already in type bool
+        pruned_2d = self.initial_boolean_mask.astype(np.int8, copy=True) # can use this for both prune mask and neighbor count
+
+
+
+        pruned_2d = scan_horizontal_surroundings(pruned_2d, 
+                                                    true_indicies=true_indicies, 
+                                                    max_horizontal_gap=max_horizontal_gap)
+
+        pruned_mask = pruned_2d.astype(bool, copy=False)  # convert back to boolean mask
+
+        return pruned_mask  # output
+
+
+
 
     def _prune_vertical(
         self,
