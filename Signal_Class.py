@@ -109,6 +109,9 @@ class signal_data:
         self.initial_boolean_mask = (
             None  # placeholder for initial boolean mask of seeds
         )
+        self.final_pruned_mask = (
+            None
+        )  # placeholder for final pruned boolean mask of seeds
         self.consolidated_group_boolean_mask = (
             None  # placeholder for consolidated boolean mask of seed groups
         )
