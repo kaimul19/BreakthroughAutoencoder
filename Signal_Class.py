@@ -309,7 +309,8 @@ class signal_data:
         elif gate_requirment_for_false == "and":  # combine masks with logical AND
             final_pruned_mask = horizontal_pruned_mask & vertical_pruned_mask
 
-        return final_pruned_mask
+        self.final_pruned_mask = final_pruned_mask  # store final pruned mask
+        return final_pruned_mask  # return final pruned mask
 
     def _prune_horizontal(self, max_horizontal_gap: int = 3, min_neighbours: int = 1):
         """
