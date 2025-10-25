@@ -214,16 +214,24 @@ class signal_data:
 
     def prune_methods(
         self,
-        min_horizontal_size: int = 3,
-        min_vertical_size: int = 1,
-        drift_padding_size: int = 1,
+        max_horizontal_gap: int = 3,
+        max_vertical_gap: int = 1,
+        drift_padding_gap: int = 1,
         min_neighbours: int = 1,
-        pad_mode: str = "constant",
         gate_requirment_for_false: str = "or",
     ):
         """
         Prune consolidated groups based on horizontal and vertical criteria.
         gate_requirment_for_false options are "and", "or", "horizontal", "vertical"
+
+        Parameters:
+        - max_horizontal_gap (int): number of consecutive non-seed pixels on either side allowed horizontally within a group.
+        - max_vertical_gap (int): max number of rows strictly above/below to consider for vertical pruning.
+        - drift_padding_gap (int): number of columns left/right to consider for vertical pruning.
+        - min_neighbours (int): minimum number of neighbours required to keep a seed during vertical pruning.
+
+        Returns:
+        - final_pruned_mask (np.ndarray): Boolean mask of seeds after applying pruning criteria.
         """
         if self.initial_boolean_mask is None:
             raise ValueError("Initial boolean masks must be computed before pruning.")
@@ -234,7 +242,7 @@ class signal_data:
             )
 
         horizontal_pruned_mask = self._prune_horizontal(
-            min_horizontal_size=min_horizontal_size
+            max_horizontal_gap=max_horizontal_gap
         )  # first horizontal pruning
 
         if (
@@ -244,10 +252,9 @@ class signal_data:
             return final_pruned_mask  # return pruned mask immediately, so vertical pruning is skipped
 
         vertical_pruned_mask = self._prune_vertical(  # then vertical pruning
-            min_vertical_size=min_vertical_size,
-            drift_padding_size=drift_padding_size,
+            max_vertical_gap=max_vertical_gap,
+            drift_padding_gap=drift_padding_gap,
             min_neighbours=min_neighbours,
-            pad_mode=pad_mode,
         )
 
         if (
@@ -295,41 +302,39 @@ class signal_data:
 
     def _prune_vertical(
         self,
-        min_vertical_size: int = 1,  # vertical radius n: rows strictly above/below to include
-        drift_padding_size: int = 1,  # horizontal radius k: columns left/right to include
+        max_vertical_gap: int = 1,  # vertical radius n: rows strictly above/below to include
+        drift_padding_gap: int = 1,  # horizontal radius k: columns left/right to include
         min_neighbours: int = 1,  # minimum neighbours required to keep a seed
-        pad_mode: str = "constant",  # padding mode for edges when building the integral image
     ):
         """
         Keep seeds that have at least `min_neighbours` neighbours in rows strictly
-        above/below (±min_vertical_size) within ±drift_padding_size columns.
+        above/below (±max_vertical_gap) within ±drift_padding_gap columns.
         The *same row* as the seed is excluded by construction (we sum two rectangles:
         the one above and the one below the centre row).
 
-        Parameters
-        - min_vertical_size (int): Minimum vertical size of groups to retain.
-        - drift_padding_size (int): Horizontal half-width for neighbour search.
+        Parameters:
+        - max_vertical_gap (int): Minimum vertical size of groups to retain.
+        - drift_padding_gap (int): Horizontal half-width for neighbour search.
         - min_neighbours (int): Minimum number of neighbours required to keep a seed.
-        - pad_mode (str): Padding mode for edges, passed to np.pad.
 
-        Returns
+        Returns:
         - pruned_mask (np.ndarray): Boolean mask of seeds that meet neighbour criteria.
         - keep_mask (np.ndarray): Boolean mask of all pixels that meet neighbour criteria.
         - neighbour_count (np.ndarray): Integer array of neighbour counts for each pixel.
         """
-        if not isinstance(min_vertical_size, int):  # ensure type is integer
+        if not isinstance(max_vertical_gap, int):  # ensure type is integer
             raise ValueError(
-                "min_vertical_size must be an integer."
+                "max_vertical_gap must be an integer."
             )  # raise on bad type
-        if not isinstance(drift_padding_size, int):  # ensure type is integer
+        if not isinstance(drift_padding_gap, int):  # ensure type is integer
             raise ValueError(
-                "drift_padding_size must be an integer."
+                "drift_padding_gap must be an integer."
             )  # raise on bad type
         if not isinstance(min_neighbours, int):  # ensure type is integer
             raise ValueError("min_neighbours must be an integer.")  # raise on bad type
-        if min_vertical_size == 0:  # disallow zero vertical radius
+        if max_vertical_gap == 0:  # disallow zero vertical radius
             raise ValueError(
-                "min_vertical_size must be at least 1."
+                "max_vertical_gap must be at least 1."
                 "If you want to just use horizontal pruning, call "
                 "prune_methods with gate_requirment_for_false='horizontal'"
             )  # guidance
@@ -341,8 +346,8 @@ class signal_data:
             )  # guidance
 
         # NOTE Cruicial for understanding the comments that follow:
-        # n = min_vertical_size,
-        # k = drift_padding_size,
+        # n = max_vertical_gap,
+        # k = drift_padding_gap,
         # R = number_of_rows,
         # C = number_of_columns,
         # W = window_width = 2k+1
@@ -355,14 +360,15 @@ class signal_data:
         seed_mask_boolean = self.initial_boolean_mask.astype(
             bool, copy=False
         )  # boolean version to gate results back to original seeds
-        window_width = 2 * drift_padding_size + 1  # horizontal window width (2k+1)
+        window_width = 2 * drift_padding_gap + 1  # horizontal window width (2k+1)
 
         # We pad by n rows and k columns so every pixel has a full ABOVE/BELOW window even at edges.
+        pad_mode = "constant"  # enforce constant padding for integral image method
         padded = np.pad(  # build padded image around the binary mask
             binary_int,  # source integer mask (0/1)
             pad_width=(
-                (min_vertical_size, min_vertical_size),  # pad top and bottom by n rows
-                (drift_padding_size, drift_padding_size),
+                (max_vertical_gap, max_vertical_gap),  # pad top and bottom by n rows
+                (drift_padding_gap, drift_padding_gap),
             ),  # pad left and right by k cols
             mode=pad_mode,  # padding rule (default constant zeros)
         )
@@ -403,7 +409,7 @@ class signal_data:
 
         above_sum = (  # start inclusion–exclusion for ABOVE
             integral[
-                min_vertical_size : min_vertical_size
+                max_vertical_gap : max_vertical_gap
                 + self.number_of_rows,  # I[r1+1, ·]: bottom row index for ABOVE → r1 = r-1 ⇒ r1+1 = r
                 window_width : window_width + self.number_of_columns,
             ]  # I[·, c1+1]: right col index for window (c+k)+1 → shift by window_width
@@ -412,7 +418,7 @@ class signal_data:
                 window_width : window_width + self.number_of_columns,
             ]  # I[·, c1+1]: same right boundary slice as above
             - integral[
-                min_vertical_size : min_vertical_size
+                max_vertical_gap : max_vertical_gap
                 + self.number_of_rows,  # I[r1+1, c0]: left col index for window (c-k) → in integral coords = c-k
                 0 : self.number_of_columns,
             ]  # I[·,   c0]: left boundary slice aligned to each start column
@@ -423,7 +429,7 @@ class signal_data:
         )  # end ABOVE
 
         # Explanation of the slices seen above (intuitive view):
-        # - Rows slice [min_vertical_size : min_vertical_size + R] corresponds to r1+1 for every r (vectorised).
+        # - Rows slice [max_vertical_gap : max_vertical_gap + R] corresponds to r1+1 for every r (vectorised).
         # - Rows slice [0 : R] corresponds to r0 for every r (vectorised).
         # - Cols slice [window_width : window_width + C] corresponds to c1+1 for every c (vectorised).
         # - Cols slice [0 : C] corresponds to c0 for every c (vectorised).
@@ -436,29 +442,29 @@ class signal_data:
 
         below_sum = (  # start inclusion–exclusion for BELOW
             integral[
-                2 * min_vertical_size
-                + 1 : 2 * min_vertical_size
+                2 * max_vertical_gap
+                + 1 : 2 * max_vertical_gap
                 + 1
                 + self.number_of_rows,  # I[r1+1, ·]: for BELOW, r1 = r+n ⇒ r1+1 = r+n+1 ⇒ shift by (2n+1)
                 window_width : window_width + self.number_of_columns,
             ]  # I[·, c1+1]: same right boundary slice
             - integral[
-                min_vertical_size
-                + 1 : min_vertical_size
+                max_vertical_gap
+                + 1 : max_vertical_gap
                 + 1
                 + self.number_of_rows,  # I[r0,   ·]: for BELOW, r0 = r+1 ⇒ in integral coords = r+1
                 window_width : window_width + self.number_of_columns,
             ]  # I[·, c1+1]: same right boundary slice
             - integral[
-                2 * min_vertical_size
-                + 1 : 2 * min_vertical_size
+                2 * max_vertical_gap
+                + 1 : 2 * max_vertical_gap
                 + 1
                 + self.number_of_rows,  # I[r1+1, c0]: left boundary slice
                 0 : self.number_of_columns,
             ]  # I[·,   c0]: left boundary slice
             + integral[
-                min_vertical_size
-                + 1 : min_vertical_size
+                max_vertical_gap
+                + 1 : max_vertical_gap
                 + 1
                 + self.number_of_rows,  # I[r0,   c0]: overlap (top-left) added back once
                 0 : self.number_of_columns,
