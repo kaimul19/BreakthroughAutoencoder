@@ -66,6 +66,19 @@ class signal_data:
     ):
         """
         Container for 2D signal snippets with row-based statistics and seed operations.
+
+        General idea with this class is to encapsulate a 2D signal snippet (e.g., time vs frequency)
+        for pruning methods we would generally suggest the following workflow:
+            1. Instantiate the class with a 2D signal snippet and unique identifier.
+            2. Call compute_row_statistics() to calculate per-row medians, stds, and thresholds.
+            3. Call get_seeds() to identify initial seed pixels exceeding thresholds.
+            4. Call Prune_methods() to prune seeds based on horizontal and vertical criteria.
+            5. Call consolidate_seeds() to merge adjacent seed pixels into groups.
+            6. Call grow_seeds() to expand seed groups by including adjacent pixels that meet a lower threshold.
+        Parameters:
+        - signal_snippet (np.ndarray): 2D array of signal data (rows x columns).
+        - unique_id (np.ndarray): 2D array [observation_index, snippet_index] for debugging.
+        - sigma_multiplier (float): Multiplier for standard deviation to set threshold.
         """
         self.signal_snippet = np.ascontiguousarray(
             signal_snippet, dtype=np.float64
