@@ -196,18 +196,36 @@ class signal_data:
             out=self.initial_boolean_mask,
         )
 
-    def consolidate_seeds(self, max_pixel_distance_either_side=5):
+    def consolidate_seeds(self, max_pixel_distance_either_side=5, use_final_mask=True):
         """
         Consolidate seed pixels into groups based on adjacency.
+        This method merges seed pixels that are within a specified maximum pixel distance
+        Parameters:
+        - max_pixel_distance_either_side (int): Maximum gap of non-seed pixels to bridge when consolidating.
+        - use_final_mask (bool): Whether to use the final pruned mask for consolidation. If False, uses the initial boolean mask.
+
+        Returns:
+        - consolidated_group_boolean_mask (np.ndarray): Boolean mask of consolidated seed groups.
+
         """
-        if self.initial_boolean_mask is None:
-            raise ValueError(
-                "Initial boolean mask must be computed before consolidating seeds."
-            )
+
         if self.consolidated_group_boolean_mask is not None:
             raise ValueError(
                 "Consolidated group boolean mask already exists. You should not call this method twice."
             )
+
+        if use_final_mask:
+            if self.final_pruned_mask is None:
+                raise ValueError(
+                    "Final pruned mask must be computed before consolidating seeds. First perform pruning or set use_final_mask to False to use the initial boolean mask instead. "
+                )
+        else:
+            if self.initial_boolean_mask is None:   # First check final as it is pruned and hence implies initial exists
+                raise ValueError(
+                    "Initial boolean mask must be computed before consolidating seeds."
+                )
+            print("Using initial boolean mask for consolidation, I would not currently suggest prunning after this as functionality has not been completely verified.")
+
 
         seperation = (
             max_pixel_distance_either_side + 1
@@ -215,9 +233,14 @@ class signal_data:
         work = np.zeros(
             (self.number_of_rows, self.number_of_columns + seperation), dtype=bool
         )  # padded work array to avoid wrap-around
-        work[:, : self.number_of_columns] = self.initial_boolean_mask.astype(
-            bool, copy=True
-        )  # populate work array
+        if use_final_mask: # use final mask
+            work[:, : self.number_of_columns] = self.final_pruned_mask.astype(
+                bool, copy=True
+                )  # populate work array
+        else: # use initial mask
+            work[:, : self.number_of_columns] = self.final_pruned_mask.astype(
+                bool, copy=True
+                )
         flat = work.ravel()  # flatten for processing
         cons_flat = _consolidate_1d(
             flat, max_pixel_distance_either_side, unique_id=self.unique_id
@@ -227,6 +250,8 @@ class signal_data:
         )[
             :, : self.number_of_columns
         ]  # reshape back and trim padding
+
+        return self.consolidated_group_boolean_mask
 
     def prune_methods(
         self,
