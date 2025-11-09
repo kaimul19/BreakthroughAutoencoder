@@ -673,6 +673,24 @@ class signal_data:
         return grown_mask
 
 
+    def _return_signal_masked(self, signal_mask):
+        """
+        Return the signal values at the grown seed mask locations.
+        """
+        if signal_mask is None:
+            raise ValueError("signal_mask cannot be None.")
+        
+        if signal_mask.shape != self.signal_snippet.shape:
+            raise ValueError(
+                f"signal_mask shape {signal_mask.shape} does not match signal_snippet shape {self.signal_snippet.shape}."
+            )
+        
+        false_indicies = np.where(~signal_mask)  # get indices of false pixels
+        masked_signal = self.signal_snippet.copy()  # copy original signal
+        masked_signal[false_indicies] = 0  # zero out non-grown seed locations
+        return masked_signal
+
+
         
 
 
