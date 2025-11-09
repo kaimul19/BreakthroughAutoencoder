@@ -1,7 +1,7 @@
 import numpy as np
 import matplotlib.pyplot as plt
 import numba
-
+from numba import njit, prange
 
 # dont jit this function as it uses non numba functions
 def _consolidate_1d(
