@@ -276,6 +276,7 @@ class signal_data:
         drift_padding_gap: int = 1,
         min_neighbours: int = 1,
         gate_requirment_for_false: str = "or",
+        return_masks: bool = False,
     ):
         """
         Prune consolidated groups based on horizontal and vertical criteria.
@@ -326,6 +327,10 @@ class signal_data:
             final_pruned_mask = horizontal_pruned_mask & vertical_pruned_mask
 
         self.final_pruned_mask = final_pruned_mask  # store final pruned mask
+
+        if return_masks:
+            return final_pruned_mask, horizontal_pruned_mask, vertical_pruned_mask
+
         return final_pruned_mask  # return final pruned mask
 
     def _prune_horizontal(self, max_horizontal_gap: int = 3, min_neighbours: int = 1):
