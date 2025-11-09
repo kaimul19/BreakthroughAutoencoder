@@ -1105,16 +1105,54 @@ if __name__ == "__main__":
 
 
     signal_instance.plot_1D(
-        nothing_initial_or_consolidated="consolidated",
+        mask_type="consolidated",
         save_location=None,
         show_plot_bool=True,
     )
-    # plot on 2d
+    signal_instance.plot_1D(
+        mask_type="grown",
+        save_location=None,
+        show_plot_bool=True,
+    )
+
     signal_instance.plot_2D(
-        nothing_initial_or_consolidated="consolidated",
+        mask_type="grown",
         save_location=None,
         show_plot_bool=True,
     )
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+    # signal_instance.consolidate_seeds(max_pixel_distance_either_side=maximum_gap)
+
+    # consolidated, shape = signal_instance._return_consolidated_mask()
+    # print(f"{consolidated=}")
+    # print(f"{shape=}")
+    # print(f"{consolidated.sum()=}")
+
+    # plot initial seeds
+    # signal_instance.plot_1D(
+    #     nothing_initial_or_consolidated="consolidated",
+    #     save_location=None,
+    #     show_plot_bool=True,
+    # )
+    # # plot on 2d
+    # signal_instance.plot_2D(
+    #     nothing_initial_or_consolidated="consolidated",
+    #     save_location=None,
+    #     show_plot_bool=True,
+    # )
 
     # print(f"{test_dataset.shape=}, {test_labels.shape=}, {test_signal_only.shape=}")
     # print(f"{test_labels[0:10]=}")
