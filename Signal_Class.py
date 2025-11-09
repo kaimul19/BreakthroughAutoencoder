@@ -837,7 +837,7 @@ class signal_data:
 
     def plot_2D(
         self,
-        nothing_initial_or_consolidated: str = "initial",
+        mask_type: str | np.ndarray | None = "initial",
         save_location: str = None,
         show_plot_bool: bool = True,
     ):
@@ -845,9 +845,9 @@ class signal_data:
         Plot the 2D signal data with thresholds and seed indicators.
 
         Parameters:
-        - none_nothing_initial_or_consolidated (str): Choose between plotting the no seed masks, initial seed mask,
+        - mask_type (str): Choose between plotting the no seed masks, initial seed mask,
                                        or the consolidated group mask.
-                                       Options are "nothin", "initial" or "consolidated".
+                                       Options are "consolidated", "final_pruned", "grown", or "None" or a NumPy array mask.
         - save_location (str): Optional path to save the plot as a PDF.
         - show_plot_bool (bool): Whether to display the plot interactively.
 
@@ -859,27 +859,57 @@ class signal_data:
         Note: Initial boolean mask or consolidated group boolean mask must be computed before calling this method.
         """
         # Raise errors if prerequisites are not met
-        if nothing_initial_or_consolidated not in [
-            "nothing",
-            "initial",
+        valid_mask_types = [
             "consolidated",
-        ]:
+            "final_pruned",
+            "grown",
+        ]
+
+        if mask_type is None:
+            # then we are plotting the original so my mask is just Falses
+            mask = np.zeros(self.signal_snippet.shape, dtype=bool)
+            mask_type_to_print = "No Mask"
+        
+        elif isinstance(mask_type, np.ndarray):
+            # then we are plotting a custom mask
+            if mask_type.shape != self.signal_snippet.shape:
+                raise ValueError(
+                    f"Custom mask shape {mask_type.shape} does not match signal_snippet shape {self.signal_snippet.shape}."
+                )
+            mask = mask_type
+            mask_type_to_print = "Custom Mask"
+
+        elif isinstance(mask_type, str):
+            # if its not in the valid options raise error
+            if mask_type not in valid_mask_types:
+                raise ValueError(
+                    f"mask_type must be one of {valid_mask_types}, None, or a NumPy array mask."
+                )
+            # then we are plotting one of the predefined masks
+            if mask_type == "consolidated":
+                if self.consolidated_group_boolean_mask is None:
+                    raise ValueError(
+                        "Consolidated group boolean mask must be computed before plotting consolidated seeds."
+                    )
+                mask = self.consolidated_group_boolean_mask
+                mask_type_to_print = "Consolidated Mask"
+            elif mask_type == "final_pruned":
+                if self.final_pruned_mask is None:
+                    raise ValueError(
+                        "Final pruned mask must be computed before plotting final pruned seeds."
+                    )
+                mask = self.final_pruned_mask
+                mask_type_to_print = "Final Pruned Mask"
+            elif mask_type == "grown":
+                if self.grown_seed_mask is None:
+                    raise ValueError(
+                        "Grown seed mask must be computed before plotting grown seeds."
+                    )
+                mask = self.grown_seed_mask
+                mask_type_to_print = "Grown Seed Mask"
+        else:
             raise ValueError(
-                "nothing_initial_or_consolidated must be either 'nothing', 'initial' or 'consolidated'"
-            )
-        if (
-            nothing_initial_or_consolidated == "initial"
-            and self.initial_boolean_mask is None
-        ):
-            raise ValueError(
-                "Initial boolean mask must be computed before plotting initial seeds."
-            )
-        elif (
-            nothing_initial_or_consolidated == "consolidated"
-            and self.consolidated_group_boolean_mask is None
-        ):
-            raise ValueError(
-                "Consolidated group boolean mask must be computed before plotting consolidated seeds."
+                f"mask_type must be one of {valid_mask_types}, None, or a NumPy array mask."
             )
 
         fig, ax = plt.subplots(figsize=(12, 8))
@@ -893,35 +923,18 @@ class signal_data:
         x_axis_values = np.arange(self.number_of_columns)  # x axis (column indices)
 
         for row_index in range(self.number_of_rows):  # iterate over rows
-            if nothing_initial_or_consolidated == "initial":
-                seed_columns = np.flatnonzero(self.initial_boolean_mask[row_index])
-                ax.scatter(
-                    seed_columns,
-                    np.full_like(seed_columns, row_index),
-                    color="red",
-                    label="Initial Seeds" if row_index == 0 else "",
-                    s=10,
-                )
-                fig.suptitle("2D Signal with Initial Seeds", y=0.995)
-            elif nothing_initial_or_consolidated == "consolidated":
-                seed_columns = np.flatnonzero(
-                    self.consolidated_group_boolean_mask[row_index]
-                )
-                ax.scatter(
-                    seed_columns,
-                    np.full_like(seed_columns, row_index),
-                    color="red",
-                    label="Consolidated Seeds" if row_index == 0 else "",
-                    s=10,
-                )
-                fig.suptitle(
-                    f"2D Snippet with Consolidated Seeds, unique_id: {self.unique_id}",
-                    y=0.995,
-                )
-            elif nothing_initial_or_consolidated == "nothing":
-                fig.suptitle(
-                    f"2D Snippet with No Seeds, unique_id: {self.unique_id}", y=0.995
-                )
+            seed_columns = np.flatnonzero(mask[row_index])
+            ax.scatter(
+                seed_columns,
+                np.full_like(seed_columns, row_index),
+                color="red",
+                label=f"{mask_type_to_print} Seeds" if row_index == 0 else "",
+                s=10,
+            )
+            fig.suptitle(
+                f"2D Signal with {mask_type_to_print}, unique_id: {self.unique_id}",
+                y=0.995,
+            )
         ax.set_xlabel("Column Index")
         ax.set_ylabel("Row Index")
         ax.legend(loc="upper right")
@@ -931,10 +944,10 @@ class signal_data:
             plt.show()
         if isinstance(save_location, str):
             fig.savefig(
-                f"{save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf"
+                f"{save_location}/1D_Plots_With_{mask_type_to_print}_Seeds.pdf"
             )
             print(
-                f"1D Plot saved to {save_location}/1D_Plots_With_{nothing_initial_or_consolidated}_Seeds.pdf"
+                f"1D Plot saved to {save_location}/1D_Plots_With_{mask_type_to_print}_Seeds.pdf"
             )
 
 
