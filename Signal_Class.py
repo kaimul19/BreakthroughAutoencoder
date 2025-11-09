@@ -967,16 +967,143 @@ if __name__ == "__main__":
     )
     signal_instance.compute_row_statistics()
     signal_instance.get_seeds()
-    maximum_gap = 5
+    maximum_gap = 20
 
-    signal_instance.consolidate_seeds(max_pixel_distance_either_side=maximum_gap)
+    max_vertical_gap = 1
+    drift_padding_gap = 2
+    min_neighbours = 4
 
-    consolidated, shape = signal_instance._return_consolidated_mask()
-    print(f"{consolidated=}")
-    print(f"{shape=}")
-    print(f"{consolidated.sum()=}")
+    vertical_pruned_mask = signal_instance._prune_vertical(
+        max_vertical_gap=max_vertical_gap,
+        drift_padding_gap=maximum_gap,   
+        min_neighbours=min_neighbours,
+    )
 
-    # plot initial seeds
+    vertical_signal = signal_instance._return_signal_masked(vertical_pruned_mask)
+    print(f"{vertical_pruned_mask.sum()=}")
+    
+    fig, ax = plt.subplots(nrows=5, ncols=1, figsize=(8, 6))
+    cax1 = ax[0].imshow(
+        signal_instance.signal_snippet, aspect="auto", cmap="viridis", interpolation="nearest"
+    )
+    fig.colorbar(
+        cax1, ax=ax[0], label="Signal Intensity"
+    )  # colorbar for signal intensity
+    ax[0].set_title("Original Signal Snippet")
+    # cax2 = ax[1].imshow(
+    #     vertical_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    # )
+    # fig.colorbar(
+    #     cax2, ax=ax[1], label="Pruned Seed Mask"
+    # )  # colorbar for signal intensity
+    # ax[1].set_title(f"Vertically Pruned Seed Mask (min_neighbours={min_neighbours})")
+    # plt.tight_layout()
+    # plt.show()
+
+    # merge horizontal and vertical pruning
+
+
+    ################################################################################
+
+    horizontal_pruned_mask = signal_instance._prune_horizontal(
+        max_horizontal_gap=maximum_gap
+    )
+
+    horizontal_signal = signal_instance._return_signal_masked(horizontal_pruned_mask)
+
+    # print(f"{horizontal_pruned_mask.sum()=}")
+    # cax3 = ax[2].imshow(
+    #     horizontal_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    # )
+    # fig.colorbar(
+    #     cax3, ax=ax[2], label="Pruned Seed Mask"
+    # )  # colorbar for signal intensity
+    # ax[2].set_title(f"Horizontally Pruned Seed Mask (max_horizontal_gap={maximum_gap})")
+
+
+    ################################################################################
+
+    merged_pruned_mask, hor_mask_2d, ver_mask_2d = signal_instance.prune_methods(
+        gate_requirment_for_false="and",
+        max_horizontal_gap=maximum_gap,
+        max_vertical_gap=max_vertical_gap,
+        drift_padding_gap=maximum_gap,
+        min_neighbours=min_neighbours,
+        return_masks=True,
+    )
+
+    print(f"{merged_pruned_mask.sum()=}")
+    print(f"{hor_mask_2d.sum()=}")
+    print(f"{ver_mask_2d.sum()=}")
+
+    pruned_signal = signal_instance._return_signal_masked(merged_pruned_mask)
+
+    cax4 = ax[1].imshow(
+        pruned_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    )
+    fig.colorbar(
+        cax4, ax=ax[1], label="Pruned Seed Mask"
+    )  # colorbar for signal intensity
+
+    ax[1].set_title(f"Merged Pruned Seed Mask (AND)")
+
+
+    # consolidate seeds
+    consolidated_seeds = signal_instance.consolidate_seeds(
+        max_pixel_distance_either_side=maximum_gap
+    )
+    print(f"{consolidated_seeds.sum()=}")
+    consolidated_signal = signal_instance._return_signal_masked(consolidated_seeds)
+    cax5 = ax[2].imshow(
+        consolidated_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    )
+    fig.colorbar(
+        cax5, ax=ax[2], label="Consolidated Seed Mask"
+    )  # colorbar for signal intensity
+    ax[2].set_title(f"Consolidated Seed Mask (max_pixel_distance_either_side={maximum_gap})")
+    # plot grown seeds
+
+    grown_seeds = signal_instance.grow_seeds(
+        growth_threshold_above_median=0
+    )
+
+    grown_signal = signal_instance._return_signal_masked(grown_seeds)
+
+    print(f"{grown_seeds.sum()=}")
+    print(f"{grown_signal.sum()=}")
+    cax6 = ax[3].imshow(
+        grown_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    )
+
+    fig.colorbar(
+        cax6, ax=ax[3], label="Grown Seed Signals"
+    )  # colorbar for signal intensity
+    ax[3].set_title(f"Grown Seed Mask (growth_threshold_above_median=1.0)")
+
+    # plot diff between grown seeds and initial signal
+
+    diff_signal = testing_snippet - grown_signal
+
+    cax7 = ax[4].imshow(
+        diff_signal, aspect="auto", cmap="viridis", interpolation="nearest"
+    )
+    fig.colorbar(
+        cax7, ax=ax[4], label="Diff Signal"
+    )  # colorbar for signal intensity
+    ax[4].set_title(f"Diff between Original Signal and Grown Seed Signal")
+
+    print(f"diff between gronw seeds and consolidated seeds: {(grown_seeds != consolidated_seeds).sum()}")
+
+    plt.tight_layout()
+    plt.show()
+
+
+    ################################################################################
+
+    # plot the consolidated seeds using plot_1D
+
+
+
     signal_instance.plot_1D(
         nothing_initial_or_consolidated="consolidated",
         save_location=None,
