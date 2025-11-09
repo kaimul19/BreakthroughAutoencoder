@@ -154,6 +154,22 @@ class signal_data:
             self.consolidated_group_boolean_mask,
             self.consolidated_group_boolean_mask.shape,
         )
+    
+    def _return_final_pruned_mask(self):
+        """
+        Return the final pruned boolean mask of seed pixels.
+        """
+        if self.final_pruned_mask is None:
+            raise ValueError("Final pruned mask has not been computed yet.")
+        return self.final_pruned_mask
+    
+    def _return_grown_seed_mask(self):
+        """
+        Return the grown seed boolean mask.
+        """
+        if self.grown_seed_mask is None:
+            raise ValueError("Grown seed mask has not been computed yet.")
+        return self.grown_seed_mask
 
     def compute_row_statistics(self):
         """
